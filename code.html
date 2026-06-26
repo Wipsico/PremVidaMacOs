@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Prem Vida Admin - Gestión de Inventario</title>
+    <!-- Tailwind CSS & Plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #e5e1e4;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(19, 19, 21, 0.6);
+            backdrop-filter: blur(40px) saturate(180%);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-modal {
+            background: rgba(19, 19, 21, 0.8);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .maintenance-toggle:checked + .toggle-track {
+            background-color: #10b981;
+        }
+        
+        .maintenance-toggle:checked + .toggle-track .toggle-thumb {
+            transform: translateX(1.25rem);
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline-variant": "#3c4a42",
+                        "secondary-container": "#ee9800",
+                        "background": "#131315",
+                        "on-surface": "#e5e1e4",
+                        "surface": "#131315",
+                        "primary": "#4edea3",
+                        "primary-container": "#10b981",
+                        "on-primary-container": "#00422b",
+                        "on-surface-variant": "#bbcabf",
+                        "surface-container": "#201f22",
+                    },
+                    spacing: {
+                        "stack-md": "1rem",
+                        "gutter": "1.5rem",
+                        "sidebar-width": "280px",
+                        "stack-sm": "0.5rem",
+                        "container-padding": "2rem",
+                        "stack-lg": "2rem"
+                    },
+                    fontSize: {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="w-[280px] h-screen sticky left-0 top-0 bg-surface/60 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-stack-lg px-gutter z-50">
+    <div class="flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center animate-pulse">
+            <span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">eco</span>
+        </div>
+        <div>
+            <h1 class="font-headline-md text-headline-md font-bold text-on-surface leading-tight">Prem Vida</h1>
+            <p class="text-xs text-on-surface-variant uppercase tracking-widest">Admin Suite</p>
+        </div>
+    </div>
+    <nav class="flex-1 space-y-2">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span class="font-body-md">Dashboard</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-primary font-bold border-r-2 border-primary bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+            <span class="font-body-md">Inventory</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <span class="font-body-md">Orders</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">group</span>
+            <span class="font-body-md">Customers</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">monitoring</span>
+            <span class="font-body-md">Analytics</span>
+        </a>
+        <a id="settings-link" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">settings</span>
+            <span class="font-body-md">Settings</span>
+        </a>
+    </nav>
+    <div class="mt-auto pt-10 space-y-2">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <span class="material-symbols-outlined">help</span>
+            <span class="font-body-md">Support</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-error/80 hover:bg-error/10 transition-colors" href="#">
+            <span class="material-symbols-outlined">logout</span>
+            <span class="font-body-md">Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Main Content Area -->
+<main class="flex-1 relative min-h-screen">
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-40 bg-surface/60 backdrop-blur-[40px] border-b border-white/20 h-20 px-container-padding flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-8">
+            <h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Inventory Management</h2>
+            <div class="h-6 w-px bg-white/10"></div>
+            <!-- Maintenance Mode Toggle -->
+            <div class="flex items-center gap-3">
+                <span class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Maintenance Mode</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input class="sr-only peer maintenance-toggle" type="checkbox"/>
+                    <div class="w-11 h-6 bg-white/10 rounded-full toggle-track transition-colors duration-200">
+                        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full toggle-thumb transition-transform duration-200"></div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="relative hidden lg:block">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+                <input id="search-input" class="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all" placeholder="Search inventory..." type="text"/>
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- Supabase Connection Config Button -->
+                <button id="config-db-btn" class="p-2 rounded-full hover:bg-white/5 transition-colors relative group" title="Configure Supabase">
+                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">database</span>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden" id="db-status-dot"></span>
+                </button>
+                <button class="relative p-2 rounded-full hover:bg-white/5 transition-colors">
+                    <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+                </button>
+                <div class="w-10 h-10 rounded-full overflow-hidden border border-white/20">
+                    <img class="w-full h-full object-cover" data-alt="Admin avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQrv0wovpjNfo4jP1r9-H1QAx_9JEUF9MCI5yQyksxiu-bAUOxtxCnjgDBUBKVLmwQhTo5mkdcUNb8SU0CI3bv1MgbcAzoyPvdCr4c54jsRGulR6q3kZTthzJIYWztZPZ9xKQJJrVdik1xoTQs65MkjFIrfJyc5CoG_yzPcGadgdOSakOaRCTQQEVX5kP4T3yYM_do_BYKCg3I0CanWZoVs6mPUIcyWFlWhVpQiSxMzuAuH3tAYg1H7O25NN8x11HmIJDpdznCoEc"/>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stage Container -->
+    <div class="p-container-padding space-y-stack-lg max-w-[1600px] mx-auto">
+        <!-- Summary Bento Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="glass-card p-6 rounded-2xl">
+                <p class="text-label-md font-label-md text-on-surface-variant uppercase mb-2">Total Products</p>
+                <h3 id="total-products-stat" class="text-headline-lg font-headline-lg">0</h3>
+                <div class="flex items-center gap-1 text-primary text-xs mt-2">
+                    <span class="material-symbols-outlined text-xs">trending_up</span>
+                    <span class="">Sincronizado en tiempo real</span>
+                </div>
+            </div>
+            <div class="glass-card p-6 rounded-2xl">
+                <p class="text-label-md font-label-md text-on-surface-variant uppercase mb-2">Out of Stock</p>
+                <h3 id="out-of-stock-stat" class="text-headline-lg font-headline-lg text-primary">0</h3>
+                <div class="flex items-center gap-1 text-on-surface-variant text-xs mt-2">
+                    <span class="text-xs" id="out-of-stock-label">Sin quiebre de stock</span>
+                </div>
+            </div>
+            <div class="glass-card p-6 rounded-2xl">
+                <p class="text-label-md font-label-md text-on-surface-variant uppercase mb-2">Total Value</p>
+                <h3 id="total-value-stat" class="text-headline-lg font-headline-lg">Bs. 0.00</h3>
+                <p class="text-on-surface-variant text-xs mt-2">Valuación en almacén</p>
+            </div>
+            <div class="glass-card p-6 rounded-2xl">
+                <p class="text-label-md font-label-md text-primary uppercase mb-2">Active Promos</p>
+                <h3 class="text-headline-lg font-headline-lg">8</h3>
+                <div class="flex items-center gap-1 text-primary text-xs mt-2">
+                    <span class="material-symbols-outlined text-xs">bolt</span>
+                    <span class="">Campaña 'Spring-Vegan'</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Inventory Table Section -->
+        <section class="glass-card rounded-2xl overflow-hidden">
+            <div class="p-6 flex justify-between items-center border-b border-white/10">
+                <h4 class="font-headline-sm text-headline-sm">Vegan Product Catalog</h4>
+                <div class="flex gap-3">
+                    <!-- Xero CSV Import Button -->
+                    <button id="import-csv-btn" class="flex items-center gap-2 px-4 py-2 glass-card rounded-lg hover:bg-white/10 transition-colors text-sm text-primary font-medium">
+                        <span class="material-symbols-outlined text-sm">upload_file</span> Importar XERO
+                    </button>
+                    <input type="file" id="csv-file-input" accept=".csv" class="hidden" />
+                    
+                    <button class="flex items-center gap-2 px-4 py-2 glass-card rounded-lg hover:bg-white/10 transition-colors text-sm">
+                        <span class="material-symbols-outlined text-sm">filter_list</span> Filtrar
+                    </button>
+                    <div class="flex gap-1 p-1 bg-white/5 rounded-lg">
+                        <button class="p-2 rounded-md bg-white/20 text-primary"><span class="material-symbols-outlined">list</span></button>
+                        <button class="p-2 rounded-md text-on-surface-variant hover:bg-white/5 transition-colors"><span class="material-symbols-outlined">grid_view</span></button>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/5 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                            <th class="px-6 py-4">Producto</th>
+                            <th class="px-6 py-4">SKU</th>
+                            <th class="px-6 py-4 text-right">Precio</th>
+                            <th class="px-6 py-4">Stock</th>
+                            <th class="px-6 py-4">Categoría</th>
+                            <th class="px-6 py-4 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-table-body" class="divide-y divide-white/5">
+                        <!-- Loading State -->
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <p class="text-sm">Cargando catálogo en tiempo real...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Bottom Split Panel: Suppliers & Expenses -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Supplier Orders -->
+            <section class="glass-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="font-headline-sm text-headline-sm">Supplier Orders</h4>
+                    <button class="text-primary text-sm font-medium hover:underline">Ver Todo</button>
+                </div>
+                <div id="supplier-orders-list" class="space-y-4">
+                    <!-- Loading Supplier Orders -->
+                    <div class="text-center py-8 text-on-surface-variant text-sm">
+                        Cargando órdenes de proveedores...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Warehouse Expenses -->
+            <section class="glass-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="font-headline-sm text-headline-sm">Warehouse Expenses</h4>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-on-surface-variant">Gastos Totales:</span>
+                        <span id="monthly-expenses-total" class="font-bold text-lg text-primary">Bs. 0.00</span>
+                    </div>
+                </div>
+                <div id="expenses-list" class="space-y-3">
+                    <!-- Loading Expenses -->
+                    <div class="text-center py-8 text-on-surface-variant text-sm">
+                        Cargando gastos de almacén...
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-white/10 flex gap-4">
+                    <!-- Connected directly to Excel/PDF catalog exports -->
+                    <button id="export-excel-btn" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl glass-card text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-outlined text-lg">download</span> Exportar Excel (Catálogo)
+                    </button>
+                    <button id="export-pdf-btn" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl glass-card text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-outlined text-lg">picture_as_pdf</span> Exportar PDF (Catálogo)
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- FAB - Add Product -->
+    <button id="fab-add-product" class="fixed bottom-10 right-10 w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all z-50" onclick="toggleModal(true)">
+        <span class="material-symbols-outlined text-on-primary text-3xl font-bold">add</span>
+    </button>
+
+    <!-- Product Modal -->
+    <div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="product-modal">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="toggleModal(false)"></div>
+        <div class="glass-modal w-full max-w-2xl rounded-3xl overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200">
+            <div class="p-8 border-b border-white/10 flex justify-between items-center">
+                <h3 class="font-headline-sm text-headline-sm">Add New Product</h3>
+                <button class="p-2 hover:bg-white/10 rounded-full transition-colors" onclick="toggleModal(false)">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <form id="new-product-form" onsubmit="event.preventDefault();" class="contents">
+                <div class="p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-250px)]">
+                    <!-- Photo Upload Container -->
+                    <div id="image-upload-zone" class="w-full aspect-video rounded-2xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer group relative overflow-hidden">
+                        <div id="upload-placeholder" class="flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl text-on-surface-variant group-hover:text-primary transition-colors">cloud_upload</span>
+                            <p class="mt-4 text-sm font-medium">Upload product photo</p>
+                            <p class="text-xs text-on-surface-variant">JPG, PNG (Max 5MB)</p>
+                        </div>
+                        <img id="image-preview" class="absolute inset-0 w-full h-full object-cover hidden" alt="Vista previa" />
+                        <div id="image-overlay" class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity hidden">
+                            <span class="material-symbols-outlined text-white text-3xl">cached</span>
+                        </div>
+                    </div>
+                    <input type="file" id="product-image-input" accept="image/*" class="hidden" />
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Product Name</label>
+                            <input id="new-product-name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="e.g. Cashew Milk 1L" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">SKU Code</label>
+                            <input id="new-product-sku" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="e.g. PV-VG-9021" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Category</label>
+                            <select id="new-product-category" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface">
+                                <option value="Dairy-Free" class="bg-surface">Dairy-Free</option>
+                                <option value="Confectionery" class="bg-surface">Confectionery</option>
+                                <option value="Beverage" class="bg-surface">Beverage</option>
+                                <option value="Bakery" class="bg-surface">Bakery</option>
+                                <option value="Vegan Meat" class="bg-surface">Vegan Meat</option>
+                                <option value="Other" class="bg-surface">Other</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Retail Price</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">Bs.</span>
+                                <input id="new-product-price" required min="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="0.00" type="number"/>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Initial Stock</label>
+                            <input id="new-product-stock" required min="0" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="0" type="number"/>
+                        </div>
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Description / Storage Notes</label>
+                            <textarea id="new-product-description" rows="2" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="Cold-storage required, special handling, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-8 bg-white/5 border-t border-white/10 flex gap-4">
+                    <button type="button" class="flex-1 py-4 rounded-xl border border-white/10 font-bold hover:bg-white/10 transition-colors" onclick="toggleModal(false)">Cancel</button>
+                    <button type="submit" id="submit-product-btn" class="flex-1 py-4 rounded-xl bg-primary text-on-primary font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                        <span>Create Product</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase Configuration Modal -->
+    <div class="fixed inset-0 z-[70] flex items-center justify-center hidden" id="supabase-config-modal">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="toggleSupabaseConfig(false)"></div>
+        <div class="glass-modal w-full max-w-md rounded-3xl overflow-hidden relative shadow-2xl p-8 space-y-6 animate-in zoom-in-95 duration-200">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">database</span> Conexión Supabase
+                </h3>
+                <button class="p-2 hover:bg-white/10 rounded-full transition-colors" onclick="toggleSupabaseConfig(false)">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p class="text-xs text-on-surface-variant">Configura las credenciales API de tu proyecto de Supabase para activar la sincronización en tiempo real y la subida de imágenes.</p>
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-label-md font-label-md text-on-surface-variant uppercase">Supabase URL</label>
+                    <input id="supabase-url" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="https://xxxx.supabase.co" />
+                </div>
+                <div class="space-y-2">
+                    <label class="text-label-md font-label-md text-on-surface-variant uppercase">Anon API Key</label>
+                    <input id="supabase-key" type="password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="Clave anónima pública" />
+                </div>
+            </div>
+            <div class="flex gap-4 pt-4 border-t border-white/10">
+                <button type="button" class="flex-1 py-3 rounded-xl border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors" onclick="toggleSupabaseConfig(false)">Cancelar</button>
+                <button id="save-supabase-btn" class="flex-1 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-lg hover:shadow-primary/20 transition-all">Guardar y Conectar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <span id="toast-icon" class="material-symbols-outlined text-primary">check_circle</span>
+        <p id="toast-message" class="text-sm font-medium text-on-surface"></p>
+    </div>
+</main>
+
+<script>
+    // Controladores globales simples requeridos por el HTML original
+    function toggleModal(show) {
+        const modal = document.getElementById('product-modal');
+        if (show) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            // Limpieza básica al abrir
+            document.getElementById('new-product-form').reset();
+            const preview = document.getElementById('image-preview');
+            const placeholder = document.getElementById('upload-placeholder');
+            const overlay = document.getElementById('image-overlay');
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            overlay.classList.add('hidden');
+            window.selectedImageFile = null;
+        } else {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    function toggleSupabaseConfig(show) {
+        const modal = document.getElementById('supabase-config-modal');
+        if (show) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            // Cargar llaves actuales en inputs
+            document.getElementById('supabase-url').value = localStorage.getItem('supabaseUrl') || '';
+            document.getElementById('supabase-key').value = localStorage.getItem('supabaseKey') || '';
+        } else {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    const toggle = document.querySelector('.maintenance-toggle');
+    toggle.addEventListener('change', function() {
+        if (this.checked) {
+            console.log("Modo mantenimiento activado");
+        } else {
+            console.log("Modo mantenimiento desactivado");
+        }
+    });
+</script>
+
+<!-- Módulo JS Principal con Lógica de Integración de Supabase -->
+<script type="module">
+    import {
+        fetchProducts,
+        fetchSupplierOrders,
+        fetchExpenses,
+        uploadProductImage,
+        insertProduct,
+        processXeroInventoryCSV,
+        exportToFormat
+    } from './js/core/logic.js';
+
+    // Estado global de la aplicación
+    const state = {
+        supabase: null,
+        products: [],
+        supplierOrders: [],
+        expenses: [],
+        searchTerm: ''
+    };
+
+    // Al iniciar la aplicación
+    window.addEventListener('DOMContentLoaded', () => {
+        initApplication();
+        setupEventListeners();
+    });
+
+    // Inicializa la conexión de Supabase y carga los datos
+    function initApplication() {
+        const url = localStorage.getItem('supabaseUrl');
+        const key = localStorage.getItem('supabaseKey');
+        const dbStatusDot = document.getElementById('db-status-dot');
+
+        if (!url || !key) {
+            // Mostrar modal de configuración de Supabase de inmediato si no hay credenciales
+            toggleSupabaseConfig(true);
+            if (dbStatusDot) dbStatusDot.classList.remove('hidden');
+            showToast('base', 'Configura las credenciales de Supabase para iniciar.', 'warning');
+        } else {
+            try {
+                // Crear cliente Supabase
+                state.supabase = supabase.createClient(url, key);
+                if (dbStatusDot) dbStatusDot.classList.add('hidden');
+                
+                // Cargar todos los datos desde las tablas
+                loadAllData();
+                
+                // Suscribirse a cambios en tiempo real
+                subscribeToRealtime();
+            } catch (err) {
+                console.error("Error al conectar con Supabase:", err);
+                showToast('error', 'Error de conexión. Revisa las credenciales.', 'error');
+                toggleSupabaseConfig(true);
+                if (dbStatusDot) dbStatusDot.classList.remove('hidden');
+            }
+        }
+    }
+
+    // Carga concurrentemente todos los datos de las tres tablas
+    async function loadAllData() {
+        if (!state.supabase) return;
+
+        try {
+            const [products, orders, expenses] = await Promise.all([
+                fetchProducts(state.supabase),
+                fetchSupplierOrders(state.supabase),
+                fetchExpenses(state.supabase)
+            ]);
+
+            state.products = products;
+            state.supplierOrders = orders;
+            state.expenses = expenses;
+
+            // Renderizar vistas
+            renderAll();
+            calculateStats();
+        } catch (err) {
+            console.error("Error al cargar la data:", err);
+            showToast('error', 'Error al sincronizar datos de las tablas.', 'error');
+        }
+    }
+
+    // Configura escuchadores de eventos del DOM
+    function setupEventListeners() {
+        // Guardar credenciales de Supabase
+        document.getElementById('save-supabase-btn').addEventListener('click', () => {
+            const url = document.getElementById('supabase-url').value.trim();
+            const key = document.getElementById('supabase-key').value.trim();
+
+            if (!url || !key) {
+                showToast('error', 'Ambos campos son requeridos.', 'error');
+                return;
+            }
+
+            localStorage.setItem('supabaseUrl', url);
+            localStorage.setItem('supabaseKey', key);
+            toggleSupabaseConfig(false);
+            
+            showToast('check_circle', 'Credenciales guardadas. Conectando...', 'success');
+            initApplication();
+        });
+
+        // Configurar botón de configuración en cabecera y enlace en sidebar
+        document.getElementById('config-db-btn').addEventListener('click', () => toggleSupabaseConfig(true));
+        document.getElementById('settings-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleSupabaseConfig(true);
+        });
+
+        // Carga de imágenes (click en zona de arrastre)
+        const uploadZone = document.getElementById('image-upload-zone');
+        const fileInput = document.getElementById('product-image-input');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and Drop en zona de carga
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('border-primary/50', 'bg-primary/5');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('border-primary/50', 'bg-primary/5');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('border-primary/50', 'bg-primary/5');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleSelectedImage(file);
+            } else {
+                showToast('error', 'Por favor, selecciona un archivo de imagen válido.', 'error');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleSelectedImage(file);
+        });
+
+        // Envío del formulario de nuevo producto
+        document.getElementById('new-product-form').addEventListener('submit', handleProductSubmit);
+
+        // Búsqueda en tiempo real
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            state.searchTerm = e.target.value.toLowerCase().trim();
+            filterAndRenderProducts();
+        });
+
+        // Importación de archivo CSV de XERO
+        const importBtn = document.getElementById('import-csv-btn');
+        const csvFileInput = document.getElementById('csv-file-input');
+
+        importBtn.addEventListener('click', () => {
+            if (!state.supabase) {
+                showToast('database', 'Debes configurar Supabase primero.', 'warning');
+                toggleSupabaseConfig(true);
+                return;
+            }
+            csvFileInput.click();
+        });
+
+        csvFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showToast('sync', 'Procesando archivo CSV de XERO...', 'info');
+            
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const csvText = evt.target.result;
+                    const result = await processXeroInventoryCSV(state.supabase, csvText);
+                    
+                    showToast('check_circle', `Éxito: Se importaron/actualizaron ${result.processedCount} productos.`, 'success');
+                    csvFileInput.value = ''; // Reset input
+                } catch (err) {
+                    console.error("Error importando CSV:", err);
+                    showToast('error', `Error al importar: ${err.message}`, 'error');
+                    csvFileInput.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Exportación Excel y PDF
+        document.getElementById('export-excel-btn').addEventListener('click', () => {
+            if (state.products.length === 0) {
+                showToast('warning', 'No hay productos en el catálogo para exportar.', 'warning');
+                return;
+            }
+            try {
+                const report = exportToFormat(state.products, 'excel', {
+                    title: 'inventario_prem_vida',
+                    columns: ['sku', 'name', 'price', 'stock', 'category'],
+                    headers: ['SKU', 'Nombre del Producto', 'Precio (Bs.)', 'Stock (Unidades)', 'Categoría']
+                });
+                report.download();
+                showToast('download', 'Archivo Excel/CSV descargado con éxito.', 'success');
+            } catch (err) {
+                showToast('error', 'Error al exportar a Excel.', 'error');
+            }
+        });
+
+        document.getElementById('export-pdf-btn').addEventListener('click', () => {
+            if (state.products.length === 0) {
+                showToast('warning', 'No hay productos en el catálogo para exportar.', 'warning');
+                return;
+            }
+            try {
+                const report = exportToFormat(state.products, 'pdf', {
+                    title: 'catálogo_inventario_prem_vida',
+                    columns: ['sku', 'name', 'price', 'stock', 'category'],
+                    headers: ['SKU', 'Nombre del Producto', 'Precio (Bs.)', 'Stock', 'Categoría']
+                });
+                report.download();
+                showToast('picture_as_pdf', 'Reporte PDF generado para impresión.', 'success');
+            } catch (err) {
+                showToast('error', 'Error al exportar a PDF.', 'error');
+            }
+        });
+    }
+
+    // Maneja la vista previa de la imagen seleccionada
+    function handleSelectedImage(file) {
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('error', 'La imagen excede el límite de 5MB.', 'error');
+            return;
+        }
+
+        window.selectedImageFile = file;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('image-preview');
+            const placeholder = document.getElementById('upload-placeholder');
+            const overlay = document.getElementById('image-overlay');
+
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            overlay.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Maneja la inserción de un nuevo producto con su correspondiente subida de imagen
+    async function handleProductSubmit(e) {
+        if (!state.supabase) {
+            showToast('database', 'Configura Supabase antes de guardar.', 'warning');
+            toggleSupabaseConfig(true);
+            return;
+        }
+
+        const submitBtn = document.getElementById('submit-product-btn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<div class="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div><span>Guardando...</span>`;
+
+        try {
+            let imageUrl = null;
+
+            // Subir imagen al Storage si se seleccionó alguna
+            if (window.selectedImageFile) {
+                showToast('cloud_upload', 'Subiendo imagen a Storage...', 'info');
+                imageUrl = await uploadProductImage(state.supabase, window.selectedImageFile);
+            }
+
+            const productData = {
+                sku: document.getElementById('new-product-sku').value.trim(),
+                name: document.getElementById('new-product-name').value.trim(),
+                category: document.getElementById('new-product-category').value,
+                price: parseFloat(document.getElementById('new-product-price').value) || 0,
+                stock: parseInt(document.getElementById('new-product-stock').value) || 0,
+                description: document.getElementById('new-product-description').value.trim(),
+                image_url: imageUrl
+            };
+
+            await insertProduct(state.supabase, productData);
+            
+            showToast('check_circle', 'Producto registrado correctamente.', 'success');
+            toggleModal(false);
+        } catch (err) {
+            console.error("Error al registrar producto:", err);
+            showToast('error', `Error: ${err.message}`, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    // Configura la suscripción a cambios en tiempo real
+    function subscribeToRealtime() {
+        if (!state.supabase) return;
+
+        // Suscripción a productos
+        state.supabase
+            .channel('realtime-inventory')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+                console.log('Cambio detectado en products:', payload);
+                if (payload.eventType === 'INSERT') {
+                    state.products = [payload.new, ...state.products];
+                } else if (payload.eventType === 'UPDATE') {
+                    state.products = state.products.map(p => p.id === payload.new.id ? payload.new : p);
+                } else if (payload.eventType === 'DELETE') {
+                    state.products = state.products.filter(p => p.id !== payload.old.id);
+                }
+                filterAndRenderProducts();
+                calculateStats();
+            })
+            .subscribe();
+
+        // Suscripción a órdenes de compra
+        state.supabase
+            .channel('realtime-orders')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, async () => {
+                // Recargamos órdenes ya que necesitamos los datos del JOIN relacional
+                const orders = await fetchSupplierOrders(state.supabase);
+                state.supplierOrders = orders;
+                renderSupplierOrders(state.supplierOrders);
+            })
+            .subscribe();
+
+        // Suscripción a gastos
+        state.supabase
+            .channel('realtime-expenses')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, async () => {
+                const expenses = await fetchExpenses(state.supabase);
+                state.expenses = expenses;
+                renderExpenses(state.expenses);
+                calculateStats();
+            })
+            .subscribe();
+    }
+
+    // Renders
+    function renderAll() {
+        filterAndRenderProducts();
+        renderSupplierOrders(state.supplierOrders);
+        renderExpenses(state.expenses);
+    }
+
+    // Filtra los productos localmente según el término de búsqueda
+    function filterAndRenderProducts() {
+        const filtered = state.products.filter(p => 
+            p.name.toLowerCase().includes(state.searchTerm) ||
+            p.sku.toLowerCase().includes(state.searchTerm) ||
+            (p.category && p.category.toLowerCase().includes(state.searchTerm))
+        );
+        renderProducts(filtered);
+    }
+
+    // Renderiza la tabla de inventario de productos
+    function renderProducts(products) {
+        const tbody = document.getElementById('product-table-body');
+        if (!tbody) return;
+
+        if (products.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant text-sm">
+                        No se encontraron productos en el inventario.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = products.map(p => {
+            const defaultImg = 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?q=80&w=120&auto=format&fit=crop';
+            const imgUrl = p.image_url || defaultImg;
+            
+            // Lógica de colores para categorías
+            let catBadgeClass = 'bg-white/10 text-on-surface-variant';
+            const cat = String(p.category || 'Otros').toLowerCase();
+            if (cat.includes('dairy') || cat.includes('queso') || cat.includes('lacte') || cat.includes('brie')) {
+                catBadgeClass = 'bg-primary/10 text-primary';
+            } else if (cat.includes('confect') || cat.includes('dulce') || cat.includes('truff') || cat.includes('choc')) {
+                catBadgeClass = 'bg-secondary/10 text-secondary';
+            } else if (cat.includes('bever') || cat.includes('bebida') || cat.includes('vital') || cat.includes('jugo')) {
+                catBadgeClass = 'bg-blue-500/10 text-blue-400';
+            } else if (cat.includes('meat') || cat.includes('carne') || cat.includes('protein')) {
+                catBadgeClass = 'bg-red-500/10 text-red-400';
+            } else if (cat.includes('bake') || cat.includes('pan') || cat.includes('repost')) {
+                catBadgeClass = 'bg-amber-500/10 text-amber-400';
+            }
+
+            // Barra y etiqueta de estado de stock
+            const maxStockReference = 200;
+            const stockPercent = Math.min(100, (p.stock / maxStockReference) * 100);
+            
+            let stockColorClass = 'bg-primary';
+            let stockLabel = `${p.stock} unidades`;
+            
+            if (p.stock === 0) {
+                stockColorClass = 'bg-red-500';
+                stockLabel = 'Sin Stock (Agotado)';
+            } else if (p.stock < 15) {
+                stockColorClass = 'bg-secondary';
+                stockLabel = `Bajo Stock (${p.stock})`;
+            }
+
+            return `
+                <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl border border-white/20 overflow-hidden shrink-0 bg-surface-container">
+                                <img class="w-full h-full object-cover" src="${imgUrl}" alt="${p.name}"/>
+                            </div>
+                            <div>
+                                <p class="font-medium text-on-surface">${escapeHtml(p.name)}</p>
+                                <p class="text-xs text-on-surface-variant">${p.description ? escapeHtml(p.description.substring(0, 45)) : 'Sin descripción'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-sm text-on-surface-variant">${escapeHtml(p.sku)}</td>
+                    <td class="px-6 py-4 text-right font-semibold text-on-surface">Bs. ${parseFloat(p.price).toFixed(2)}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="${stockColorClass} h-full" style="width: ${stockPercent}%"></div>
+                            </div>
+                            <span class="text-xs ${p.stock < 15 ? 'text-secondary' : 'text-on-surface-variant'}">${stockLabel}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full ${catBadgeClass} text-[10px] font-bold uppercase">${escapeHtml(p.category || 'Vegan')}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="text-on-surface-variant hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined">more_horiz</span>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Renderiza la lista de órdenes de proveedores
+    function renderSupplierOrders(orders) {
+        const container = document.getElementById('supplier-orders-list');
+        if (!container) return;
+
+        if (orders.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-on-surface-variant text-sm">No hay órdenes de proveedores.</div>`;
+            return;
+        }
+
+        // Mostramos las 3 órdenes más recientes
+        const recentOrders = orders.slice(0, 3);
+
+        container.innerHTML = recentOrders.map(order => {
+            const supplierName = order.suppliers ? order.suppliers.name : 'Proveedor Desconocido';
+            let icon = 'pending_actions';
+            let iconColorClass = 'text-secondary';
+            let bgClass = 'bg-secondary/20';
+            let statusColorClass = 'bg-secondary/10 text-secondary';
+            
+            const status = String(order.status).toLowerCase();
+            if (status === 'solicitado') {
+                icon = 'local_shipping';
+                iconColorClass = 'text-blue-400';
+                bgClass = 'bg-blue-500/20';
+                statusColorClass = 'bg-blue-500/10 text-blue-400';
+            } else if (status === 'pagado') {
+                icon = 'check_circle';
+                iconColorClass = 'text-primary';
+                bgClass = 'bg-primary/20';
+                statusColorClass = 'bg-primary/10 text-primary';
+            }
+
+            return `
+                <div class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center ${iconColorClass}">
+                            <span class="material-symbols-outlined">${icon}</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm text-on-surface">${escapeHtml(supplierName)}</p>
+                            <p class="text-xs text-on-surface-variant">Monto: Bs. ${parseFloat(order.total_amount).toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 rounded-full ${statusColorClass} text-[10px] font-bold uppercase">${escapeHtml(order.status)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Renderiza la lista de gastos operativos de almacén
+    function renderExpenses(expenses) {
+        const container = document.getElementById('expenses-list');
+        if (!container) return;
+
+        if (expenses.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-on-surface-variant text-sm">No hay gastos operativos registrados.</div>`;
+            return;
+        }
+
+        // Agrupamos los gastos por categoría y los sumamos
+        const categories = {
+            alquiler: { label: 'Alquiler (Facilidad Principal)', icon: 'home', amount: 0 },
+            luz: { label: 'Electricidad y HVAC', icon: 'bolt', amount: 0 },
+            agua: { label: 'Agua y Saneamiento', icon: 'water_drop', amount: 0 },
+            otros: { label: 'Infraestructura de Red / Otros', icon: 'router', amount: 0 }
+        };
+
+        let total = 0;
+        expenses.forEach(e => {
+            const cat = e.category || 'otros';
+            if (categories[cat]) {
+                categories[cat].amount += parseFloat(e.amount) || 0;
+            } else {
+                categories.otros.amount += parseFloat(e.amount) || 0;
+            }
+            total += parseFloat(e.amount) || 0;
+        });
+
+        // Mostrar total de gastos
+        document.getElementById('monthly-expenses-total').innerText = `Bs. ${total.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
+
+        container.innerHTML = Object.keys(categories).map(key => {
+            const item = categories[key];
+            return `
+                <div class="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">${item.icon}</span>
+                        <span class="text-sm font-medium text-on-surface">${item.label}</span>
+                    </div>
+                    <span class="font-mono text-sm text-on-surface-variant">Bs. ${item.amount.toFixed(2)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Calcula y actualiza los Bento Stats superiores
+    function calculateStats() {
+        // 1. Total Productos
+        document.getElementById('total-products-stat').innerText = state.products.length.toLocaleString();
+
+        // 2. Sin Stock
+        const outOfStockCount = state.products.filter(p => p.stock === 0).length;
+        const outOfStockStat = document.getElementById('out-of-stock-stat');
+        const outOfStockLabel = document.getElementById('out-of-stock-label');
+
+        outOfStockStat.innerText = outOfStockCount;
+        if (outOfStockCount > 0) {
+            outOfStockStat.classList.add('text-error');
+            outOfStockStat.classList.remove('text-primary');
+            outOfStockLabel.innerText = 'Requiere compra inmediata';
+            outOfStockLabel.classList.add('text-error');
+        } else {
+            outOfStockStat.classList.remove('text-error');
+            outOfStockStat.classList.add('text-primary');
+            outOfStockLabel.innerText = 'Sin quiebre de stock';
+            outOfStockLabel.classList.remove('text-error');
+        }
+
+        // 3. Valuación Almacén (Suma de precio * stock)
+        const valuation = state.products.reduce((acc, p) => acc + (parseFloat(p.price) * (parseInt(p.stock) || 0)), 0);
+        document.getElementById('total-value-stat').innerText = `Bs. ${valuation.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    // Muestra una notificación emergente estilizada
+    function showToast(icon, message, type = 'success') {
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastMsg = document.getElementById('toast-message');
+
+        if (!toast || !toastIcon || !toastMsg) return;
+
+        toastIcon.innerText = icon;
+        toastMsg.innerText = message;
+
+        // Resetear clases de color
+        toastIcon.className = 'material-symbols-outlined';
+        if (type === 'success') {
+            toastIcon.classList.add('text-primary');
+        } else if (type === 'error') {
+            toastIcon.classList.add('text-red-500');
+        } else if (type === 'warning') {
+            toastIcon.classList.add('text-secondary');
+        } else {
+            toastIcon.classList.add('text-blue-400');
+        }
+
+        // Animación de entrada
+        toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+        
+        // Desvanecer después de 4 segundos
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        }, 4000);
+    }
+
+    // Escapa HTML para prevenir vulnerabilidades XSS
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+</script>
+</body>
+</html>
