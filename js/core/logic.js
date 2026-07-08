@@ -445,18 +445,28 @@ export async function insertProduct(supabase, productData) {
   if (!supabase) {
     throw new Error('Supabase client instance is required.');
   }
-  
-  const { sku, name, description, price, stock, image_url, category } = productData;
-  
+
+  // Fallback image: used when Storage upload is unavailable or skipped
+  const DEFAULT_IMAGE_URL = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop';
+
+  const { sku, name, description, price, sale_price, stock, image_url, category } = productData;
+
+  // Apply Math.round rounding to avoid floating-point drift in Bs. prices
+  const roundedPrice     = Math.round((parseFloat(price)      || 0)    * 100) / 100;
+  const roundedSalePrice = sale_price != null
+    ? Math.round((parseFloat(sale_price)) * 100) / 100
+    : null;
+
   const { data, error } = await supabase
     .from('products')
     .insert([{
       sku,
       name,
       description,
-      price,
+      price:      roundedPrice,
+      sale_price: roundedSalePrice,
       stock,
-      image_url,
+      image_url:  image_url || DEFAULT_IMAGE_URL,
       category,
       is_active: true
     }])
@@ -468,6 +478,7 @@ export async function insertProduct(supabase, productData) {
   }
   return data;
 }
+
 
 /**
  * Procesa línea por línea el archivo CSV de inventario exportado desde XERO,

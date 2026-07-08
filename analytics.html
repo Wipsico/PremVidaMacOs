@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Prem Vida Admin – Analytics</title>
+    <meta name="description" content="Panel de analíticas de inventario, degradación por vencimiento y rotación de stock de Prem Vida."/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family:'Inter',sans-serif; background-color:#09090b; color:#e5e1e4; overflow-x:hidden; }
+        .glass-card {
+            background:rgba(19,19,21,0.6);
+            backdrop-filter:blur(40px) saturate(180%);
+            border-top:1px solid rgba(255,255,255,0.15);
+            border-left:1px solid rgba(255,255,255,0.08);
+            box-shadow:0 25px 50px -12px rgba(0,0,0,0.7), inset 0 1px 0 0 rgba(255,255,255,0.05);
+        }
+        .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+        .nav-active  { color:#4edea3; font-weight:700; border-right:2px solid #4edea3; background:rgba(255,255,255,0.05); }
+        .nav-inactive { color:#bbcabf; } .nav-inactive:hover { background:rgba(255,255,255,0.05); }
+        .bar-container { height: 12px; border-radius: 9999px; overflow:hidden; background:rgba(255,255,255,0.06); }
+        .bar-fill { height:100%; border-radius:9999px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes pulse-warn { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        .pulse-warn { animation: pulse-warn 2s ease-in-out infinite; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-[280px] h-screen sticky left-0 top-0 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-8 px-6 z-50"
+       style="background:rgba(19,19,21,0.6)">
+    <div class="flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:#10b981">
+            <span class="material-symbols-outlined text-xl" style="color:#003824;font-variation-settings:'FILL' 1">eco</span>
+        </div>
+        <div>
+            <h1 class="font-bold text-base leading-tight" style="color:#e5e1e4">Prem Vida</h1>
+            <p class="text-[10px] uppercase tracking-widest" style="color:#bbcabf">Admin Suite</p>
+        </div>
+    </div>
+    <nav class="flex-1 space-y-1">
+        <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive"><span class="material-symbols-outlined">dashboard</span><span class="text-sm">Dashboard</span></a>
+        <a href="code.html"      class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive"><span class="material-symbols-outlined">inventory_2</span><span class="text-sm">Inventory</span></a>
+        <a href="orders.html"    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive"><span class="material-symbols-outlined">shopping_cart</span><span class="text-sm">Orders</span></a>
+        <a href="customers.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive"><span class="material-symbols-outlined">group</span><span class="text-sm">Customers</span></a>
+        <a href="analytics.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-active"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">monitoring</span><span class="text-sm font-medium">Analytics</span></a>
+        <a href="settings.html"  class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive"><span class="material-symbols-outlined">settings</span><span class="text-sm">Settings</span></a>
+    </nav>
+    <div class="mt-auto pt-6 border-t border-white/10">
+        <a href="login.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors" style="color:rgba(248,113,113,0.8)">
+            <span class="material-symbols-outlined">logout</span><span class="text-sm">Cerrar Sesión</span>
+        </a>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 relative min-h-screen">
+
+    <!-- TOP BAR -->
+    <header class="sticky top-0 z-40 h-20 px-8 flex justify-between items-center shadow-lg border-b border-white/20"
+            style="background:rgba(19,19,21,0.6);backdrop-filter:blur(40px)">
+        <div class="flex items-center gap-6">
+            <h2 class="font-bold text-lg" style="color:#e5e1e4">Panel de Analíticas</h2>
+            <div class="h-6 w-px" style="background:rgba(255,255,255,0.1)"></div>
+            <span class="text-xs uppercase tracking-widest" style="color:#bbcabf">Rotación · Degradación · Stock</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-xs px-3 py-1.5 rounded-full font-semibold" style="background:rgba(245,158,11,0.12);color:#ffb95f">
+                ⚠ Datos simulados para evaluación
+            </span>
+            <div class="w-10 h-10 rounded-full overflow-hidden border border-white/20">
+                <img class="w-full h-full object-cover" alt="Admin" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=80&auto=format&fit=crop"/>
+            </div>
+        </div>
+    </header>
+
+    <div class="p-8 space-y-8 max-w-[1400px] mx-auto">
+
+        <!-- ══ TOP METRICS ══ -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div class="glass-card p-5 rounded-2xl space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">SKUs Activos</p>
+                <p class="text-2xl font-bold" style="color:#e5e1e4">47</p>
+                <p class="text-[11px]" style="color:#4edea3">+3 nuevos este mes</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Rotación Promedio</p>
+                <p class="text-2xl font-bold" style="color:#e5e1e4">18 días</p>
+                <p class="text-[11px]" style="color:#4edea3">↓ 2 días vs. mes anterior</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Pérdida Estimada</p>
+                <p class="text-2xl font-bold" style="color:#ef4444">Bs. 2.840</p>
+                <p class="text-[11px]" style="color:#bbcabf">Por vencimiento proyectado</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Merma del Mes</p>
+                <p class="text-2xl font-bold" style="color:#ffb95f">4.2%</p>
+                <p class="text-[11px]" style="color:#bbcabf">Del valor de almacén</p>
+            </div>
+        </div>
+
+        <!-- ══ TWO COLUMN LAYOUT ══ -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+            <!-- Rotación de Stock (Best Sellers) -->
+            <div class="glass-card p-6 rounded-2xl space-y-5">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <h4 class="font-bold text-base" style="color:#e5e1e4">Rotación de Stock</h4>
+                    <span class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full" style="background:rgba(78,222,163,0.1);color:#4edea3">Top 7</span>
+                </div>
+                <div id="rotation-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Degradación por Vencimiento -->
+            <div class="glass-card p-6 rounded-2xl space-y-5">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <h4 class="font-bold text-base flex items-center gap-2" style="color:#e5e1e4">
+                        <span class="material-symbols-outlined text-base pulse-warn" style="color:#ef4444;font-variation-settings:'FILL' 1">emergency</span>
+                        Alertas de Vencimiento
+                    </h4>
+                    <span class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full" style="background:rgba(239,68,68,0.12);color:#ef4444">Crítico</span>
+                </div>
+                <div id="expiry-list" class="space-y-3"></div>
+                <div class="pt-4 border-t border-white/5">
+                    <p class="text-[10px] leading-relaxed" style="color:rgba(187,202,191,0.7)">
+                        * Las alertas se calculan en base a la vida útil estándar de cada categoría de producto vegano. Requiere campo <code>expiry_date</code> en la tabla <code>products</code> para integración real con Supabase.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ CATEGORY BREAKDOWN ══ -->
+        <div class="glass-card p-6 rounded-2xl space-y-5">
+            <h4 class="font-bold text-base border-b border-white/5 pb-4" style="color:#e5e1e4">Distribución por Categoría</h4>
+            <div id="category-bars" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+// Auth guard
+if (localStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'login.html'; }
+
+// ── Mock Datasets ────────────────────────────────────────────────────────────
+
+const TOP_PRODUCTS = [
+    { name:'Leche de Almendras 1L',          sold:142, max:200, category:'Dairy-Free', color:'#4edea3' },
+    { name:'Queso Cheddar Vegano 200g',       sold:98,  max:200, category:'Dairy-Free', color:'#4edea3' },
+    { name:'Hamburguesa de Lentejas (4u)',    sold:87,  max:200, category:'Vegan Meat', color:'#ef4444' },
+    { name:'Granola Vegana 500g',             sold:76,  max:200, category:'Bakery',     color:'#f59e0b' },
+    { name:'Jugo Verde Detox 500ml',          sold:64,  max:200, category:'Beverage',   color:'#60a5fa' },
+    { name:'Chocolate 70% Cacao 100g',        sold:53,  max:200, category:'Confectionery', color:'#ffb95f' },
+    { name:'Proteína de Chía (Polvo) 300g',  sold:41,  max:200, category:'Vegan Meat', color:'#ef4444' },
+];
+
+const EXPIRY_ALERTS = [
+    { name:'Leche de Avena 1L',        daysLeft:3,  stock:18, lossEst:540.00,   urgency:'critical' },
+    { name:'Yogur de Coco 200g',        daysLeft:5,  stock:24, lossEst:720.00,   urgency:'critical' },
+    { name:'Crema de Cacahuate 250g',   daysLeft:8,  stock:11, lossEst:341.00,   urgency:'high'     },
+    { name:'Smoothie Tropical 330ml',   daysLeft:12, stock:30, lossEst:450.00,   urgency:'medium'   },
+    { name:'Pan de Masa Madre 400g',    daysLeft:14, stock:8,  lossEst:176.00,   urgency:'medium'   },
+    { name:'Tofu Firme 400g',           daysLeft:21, stock:45, lossEst:405.00,   urgency:'low'      },
+];
+
+const CATEGORIES = [
+    { name:'Dairy-Free',     count:14, pct:30, color:'#4edea3' },
+    { name:'Vegan Meat',     count:9,  pct:19, color:'#ef4444' },
+    { name:'Beverage',       count:8,  pct:17, color:'#60a5fa' },
+    { name:'Bakery',         count:7,  pct:15, color:'#f59e0b' },
+    { name:'Confectionery',  count:5,  pct:11, color:'#ffb95f' },
+    { name:'Other',          count:4,  pct:8,  color:'#bbcabf' },
+];
+
+// ── Render functions ─────────────────────────────────────────────────────────
+
+function renderRotation() {
+    const el = document.getElementById('rotation-list');
+    el.innerHTML = TOP_PRODUCTS.map((p, i) => {
+        const pct = Math.round((p.sold / p.max) * 100);
+        return `
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-xs font-bold w-4 shrink-0" style="color:#bbcabf">#${i+1}</span>
+                        <span class="text-sm font-medium truncate" style="color:#e5e1e4">${p.name}</span>
+                    </div>
+                    <span class="text-xs font-bold shrink-0 ml-3" style="color:${p.color}">${p.sold} u.</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width:${pct}%;background:${p.color}"></div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function renderExpiry() {
+    const el = document.getElementById('expiry-list');
+    const urgencyConfig = {
+        critical: { bg:'rgba(239,68,68,0.12)', text:'#ef4444', label:'Crítico',  icon:'emergency' },
+        high:     { bg:'rgba(245,158,11,0.12)', text:'#f59e0b', label:'Alto',    icon:'warning'   },
+        medium:   { bg:'rgba(96,165,250,0.10)', text:'#60a5fa', label:'Medio',   icon:'info'      },
+        low:      { bg:'rgba(78,222,163,0.10)', text:'#4edea3', label:'Bajo',    icon:'check_circle'},
+    };
+    el.innerHTML = EXPIRY_ALERTS.map(a => {
+        const cfg = urgencyConfig[a.urgency];
+        return `
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors"
+                 style="background:${cfg.bg}">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="material-symbols-outlined text-lg shrink-0${a.urgency==='critical'?' pulse-warn':''}"
+                          style="color:${cfg.text};font-variation-settings:'FILL' 1">${cfg.icon}</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold truncate" style="color:#e5e1e4">${a.name}</p>
+                        <p class="text-[10px]" style="color:#bbcabf">Stock: ${a.stock} u · Vence en ${a.daysLeft} días</p>
+                    </div>
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="text-sm font-bold" style="color:${cfg.text}">−Bs. ${a.lossEst.toFixed(2)}</p>
+                    <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,0.06);color:#bbcabf">${cfg.label}</span>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function renderCategories() {
+    const el = document.getElementById('category-bars');
+    el.innerHTML = CATEGORIES.map(c => `
+        <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+                <span class="font-medium" style="color:#e5e1e4">${c.name}</span>
+                <span class="font-bold" style="color:${c.color}">${c.count} SKUs · ${c.pct}%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill" style="width:${c.pct}%;background:${c.color}"></div>
+            </div>
+        </div>`).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    renderRotation();
+    renderExpiry();
+    // Delay category bars to animate on load
+    setTimeout(renderCategories, 150);
+});
+</script>
+</body>
+</html>

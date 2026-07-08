@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     name TEXT NOT NULL,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+    sale_price NUMERIC(10, 2) CHECK (sale_price >= 0),
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
     image_url TEXT,
     category TEXT, -- Added for classification (e.g., Dairy-Free, Confectionery, Beverage)

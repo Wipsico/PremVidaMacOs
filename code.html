@@ -360,6 +360,13 @@
                             </div>
                         </div>
                         <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Precio de Oferta <span class="normal-case text-[10px] opacity-60">(opcional)</span></label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">Bs.</span>
+                                <input id="new-product-sale-price" min="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary text-sm text-on-surface" placeholder="0.00 (descuento)" type="number"/>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
                             <label class="text-label-md font-label-md text-on-surface-variant uppercase">Initial Stock</label>
                             <input id="new-product-stock" required min="0" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="0" type="number"/>
                         </div>
@@ -623,10 +630,6 @@
 
         // Configurar botón de configuración en cabecera y enlace en sidebar
         document.getElementById('config-db-btn').addEventListener('click', () => toggleSupabaseConfig(true));
-        document.getElementById('settings-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            toggleSupabaseConfig(true);
-        });
 
         // Carga de imágenes (click en zona de arrastre)
         const uploadZone = document.getElementById('image-upload-zone');
@@ -788,14 +791,22 @@
                 imageUrl = await uploadProductImage(state.supabase, window.selectedImageFile);
             }
 
+            // Fallback image: if upload failed or no file was selected, use a premium dark placeholder
+            const DEFAULT_IMG = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop';
+
+            const rawPrice     = parseFloat(document.getElementById('new-product-price').value) || 0;
+            const rawSalePrice = parseFloat(document.getElementById('new-product-sale-price').value) || null;
+
             const productData = {
                 sku: document.getElementById('new-product-sku').value.trim(),
                 name: document.getElementById('new-product-name').value.trim(),
                 category: document.getElementById('new-product-category').value,
-                price: parseFloat(document.getElementById('new-product-price').value) || 0,
+                // Math.round to 2 dp to avoid floating-point drift in Bs. amounts
+                price:      Math.round(rawPrice * 100) / 100,
+                sale_price: rawSalePrice !== null ? Math.round(rawSalePrice * 100) / 100 : null,
                 stock: parseInt(document.getElementById('new-product-stock').value) || 0,
                 description: document.getElementById('new-product-description').value.trim(),
-                image_url: imageUrl
+                image_url: imageUrl || DEFAULT_IMG
             };
 
             await insertProduct(state.supabase, productData);
@@ -925,7 +936,6 @@
             }
 
             // Barra y etiqueta de estado de stock
-            // Umbral crítico oficial: < 5 unidades = alerta roja (Guía de Arquitectura)
             const maxStockReference = 200;
             const stockPercent = Math.min(100, (p.stock / maxStockReference) * 100);
 
@@ -936,7 +946,6 @@
                 stockColorClass = 'bg-red-500';
                 stockLabel = 'Sin Stock (Agotado)';
             } else if (p.stock < 5) {
-                // Stock crítico: menos de 5 unidades → alerta roja
                 stockColorClass = 'bg-red-400';
                 stockLabel = `⚠ Crítico (${p.stock})`;
             } else if (p.stock < 15) {
@@ -949,7 +958,7 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-xl border border-white/20 overflow-hidden shrink-0 bg-surface-container">
-                                <img class="w-full h-full object-cover" src="${imgUrl}" alt="${p.name}"/>
+                                <img class="w-full h-full object-cover" src="${imgUrl}" alt="${p.name}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=120&auto=format&fit=crop'"/>
                             </div>
                             <div>
                                 <p class="font-medium text-on-surface">${escapeHtml(p.name)}</p>
@@ -958,7 +967,9 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 font-mono text-sm text-on-surface-variant">${escapeHtml(p.sku)}</td>
-                    <td class="px-6 py-4 text-right font-semibold text-on-surface">Bs. ${parseFloat(p.price).toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right font-semibold text-on-surface">
+                        ${p.sale_price ? `<span class='line-through text-on-surface-variant text-xs mr-1'>Bs. ${parseFloat(p.price).toFixed(2)}</span><span class='text-secondary'>Bs. ${parseFloat(p.sale_price).toFixed(2)}</span>` : `Bs. ${parseFloat(p.price).toFixed(2)}`}
+                    </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
