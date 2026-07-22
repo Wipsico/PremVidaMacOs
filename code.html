@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/core/shared.js" defer></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -98,40 +99,40 @@
         </div>
     </div>
     <nav class="flex-1 space-y-2">
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="dashboard.html">
             <span class="material-symbols-outlined">dashboard</span>
             <span class="font-body-md">Dashboard</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-primary font-bold border-r-2 border-primary bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-primary font-bold border-r-2 border-primary bg-white/5 transition-colors" href="code.html">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
             <span class="font-body-md">Inventory</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="orders.html">
             <span class="material-symbols-outlined">shopping_cart</span>
             <span class="font-body-md">Orders</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="customers.html">
             <span class="material-symbols-outlined">group</span>
             <span class="font-body-md">Customers</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="analytics.html">
             <span class="material-symbols-outlined">monitoring</span>
             <span class="font-body-md">Analytics</span>
         </a>
-        <a id="settings-link" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a id="settings-link" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="settings.html">
             <span class="material-symbols-outlined">settings</span>
             <span class="font-body-md">Settings</span>
         </a>
     </nav>
     <div class="mt-auto pt-10 space-y-2">
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="settings.html">
             <span class="material-symbols-outlined">help</span>
             <span class="font-body-md">Support</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-error/80 hover:bg-error/10 transition-colors" href="#">
+        <button id="sidebar-logout-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/80 hover:bg-red-500/10 transition-colors">
             <span class="material-symbols-outlined">logout</span>
             <span class="font-body-md">Logout</span>
-        </a>
+        </button>
     </div>
 </aside>
 
@@ -426,17 +427,30 @@
 <script>
     // ============================================================
     // CREDENCIALES OFICIALES DE PRODUCCIÓN (Fallback automático)
+    // Claves estandarizadas: supabaseUrl / supabaseKey (minúsculas)
+    // para sincronizar con shared.js y todos los demás módulos.
     // ============================================================
-    const _PROD_URL = 'https://qupB57fCBXiY5fazSqAqrA.supabase.co';
+    const _PROD_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
     const _PROD_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
 
-    // Auto-inyectar credenciales si localStorage está vacío
-    if (!localStorage.getItem('SUPABASE_URL')) {
-        localStorage.setItem('SUPABASE_URL', _PROD_URL);
+    // Auto-inyectar credenciales si localStorage está vacío (estándar minúsculas)
+    if (!localStorage.getItem('supabaseUrl')) {
+        localStorage.setItem('supabaseUrl', _PROD_URL);
     }
-    if (!localStorage.getItem('SUPABASE_ANON_KEY')) {
-        localStorage.setItem('SUPABASE_ANON_KEY', _PROD_KEY);
+    if (!localStorage.getItem('supabaseKey')) {
+        localStorage.setItem('supabaseKey', _PROD_KEY);
     }
+
+    // Logout desde sidebar
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebarLogout = document.getElementById('sidebar-logout-btn');
+        if (sidebarLogout) {
+            sidebarLogout.addEventListener('click', () => {
+                if (window.premVidaLogout) window.premVidaLogout();
+                else window.location.href = 'login.html';
+            });
+        }
+    });
 
     // ============================================================
     // CONTROLADORES GLOBALES DEL DOM
@@ -468,11 +482,11 @@
         if (show) {
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
-            // Cargar claves estandarizadas en inputs
+            // Cargar claves estandarizadas en inputs (minúsculas)
             const urlInput = document.getElementById('supabase-url');
             const keyInput = document.getElementById('supabase-key');
-            if (urlInput) urlInput.value = localStorage.getItem('SUPABASE_URL') || '';
-            if (keyInput) keyInput.value = localStorage.getItem('SUPABASE_ANON_KEY') || '';
+            if (urlInput) urlInput.value = localStorage.getItem('supabaseUrl') || '';
+            if (keyInput) keyInput.value = localStorage.getItem('supabaseKey') || '';
         } else {
             modal.classList.add('hidden');
             document.body.classList.remove('overflow-hidden');
@@ -543,6 +557,17 @@
     // Registrar la función reactiva como global (requerido por refreshProductTable())
     window._refreshProductTableFn = () => filterAndRenderProducts();
 
+    // ── Exponer referencias globales para scripts de modales editar/eliminar ──
+    // Los scripts no-módulo (closeEditModal, openDeleteModal) acceden a estos refs.
+    Object.defineProperty(window, '_productState', {
+        get: () => state.products,
+        configurable: true
+    });
+    Object.defineProperty(window, '_supabaseClientRef', {
+        get: () => state.supabase,
+        configurable: true
+    });
+
     // Al iniciar la aplicación — esperar DOMContentLoaded
     document.addEventListener('DOMContentLoaded', () => {
         initApplication();
@@ -551,12 +576,12 @@
 
     /**
      * Inicializa la conexión de Supabase y carga los datos.
-     * Lee de SUPABASE_URL / SUPABASE_ANON_KEY (ya pre-inyectadas como fallback
+     * Lee de supabaseUrl / supabaseKey (ya pre-inyectadas como fallback
      * por el bloque global de arriba).
      */
     function initApplication() {
-        const url = localStorage.getItem('SUPABASE_URL');
-        const key = localStorage.getItem('SUPABASE_ANON_KEY');
+        const url = localStorage.getItem('supabaseUrl');
+        const key = localStorage.getItem('supabaseKey');
         const dbStatusDot = document.getElementById('db-status-dot');
 
         if (!url || !key) {
@@ -605,7 +630,7 @@
 
     // Configura escuchadores de eventos del DOM
     function setupEventListeners() {
-        // Guardar credenciales de Supabase (claves estandarizadas SUPABASE_URL / SUPABASE_ANON_KEY)
+        // Guardar credenciales de Supabase (claves estandarizadas supabaseUrl / supabaseKey)
         const saveBtn = document.getElementById('save-supabase-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
@@ -617,8 +642,9 @@
                     return;
                 }
 
-                localStorage.setItem('SUPABASE_URL', url);
-                localStorage.setItem('SUPABASE_ANON_KEY', key);
+                // Guardar con claves estandarizadas (minúsculas)
+                localStorage.setItem('supabaseUrl', url);
+                localStorage.setItem('supabaseKey', key);
                 toggleSupabaseConfig(false);
 
                 showToast('check_circle', 'Credenciales guardadas. Reconectando...', 'success');
@@ -968,7 +994,7 @@
                     </td>
                     <td class="px-6 py-4 font-mono text-sm text-on-surface-variant">${escapeHtml(p.sku)}</td>
                     <td class="px-6 py-4 text-right font-semibold text-on-surface">
-                        ${p.sale_price ? `<span class='line-through text-on-surface-variant text-xs mr-1'>Bs. ${parseFloat(p.price).toFixed(2)}</span><span class='text-secondary'>Bs. ${parseFloat(p.sale_price).toFixed(2)}</span>` : `Bs. ${parseFloat(p.price).toFixed(2)}`}
+                        ${p.sale_price ? `<span class='line-through text-on-surface-variant text-xs mr-1'>Bs. ${parseFloat(p.price).toFixed(2)}</span><span class='text-primary'>Bs. ${parseFloat(p.sale_price).toFixed(2)}</span>` : `Bs. ${parseFloat(p.price).toFixed(2)}`}
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
@@ -982,9 +1008,18 @@
                         <span class="px-3 py-1 rounded-full ${catBadgeClass} text-[10px] font-bold uppercase">${escapeHtml(p.category || 'Vegan')}</span>
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <button class="text-on-surface-variant hover:text-primary transition-colors">
-                            <span class="material-symbols-outlined">more_horiz</span>
-                        </button>
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="openEditModal('${p.id}')"
+                                    title="Editar producto"
+                                    class="p-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all group">
+                                <span class="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                            <button onclick="openDeleteModal('${p.id}', '${escapeHtml(p.name)}')"
+                                    title="Eliminar producto"
+                                    class="p-2 rounded-xl text-on-surface-variant hover:text-red-400 hover:bg-red-500/10 transition-all group">
+                                <span class="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -1157,5 +1192,265 @@
             .replace(/'/g, '&#039;');
     }
 </script>
+
+    <!-- ══ LÓGICA: MODALES EDITAR / ELIMINAR ══════════════════════ -->
+    <script>
+    // ── Controladores globales de Modal Editar ──────────────────────
+    function openEditModal(productId) {
+        // Buscar el producto en el state del módulo ES (expuesto como global)
+        const product = (window._productState || []).find(p => p.id === productId);
+        if (!product) {
+            console.warn('Producto no encontrado en state:', productId);
+            return;
+        }
+
+        document.getElementById('edit-product-id').value       = product.id;
+        document.getElementById('edit-product-name').value     = product.name || '';
+        document.getElementById('edit-product-sku').value      = product.sku  || '';
+        document.getElementById('edit-product-category').value = product.category || 'Other';
+        document.getElementById('edit-product-price').value    = parseFloat(product.price) || 0;
+        document.getElementById('edit-product-sale-price').value = product.sale_price ? parseFloat(product.sale_price) : '';
+        document.getElementById('edit-product-stock').value    = parseInt(product.stock) || 0;
+        document.getElementById('edit-product-description').value = product.description || '';
+
+        document.getElementById('edit-product-modal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-product-modal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // ── Controladores globales de Modal Eliminar ────────────────────
+    function openDeleteModal(productId, productName) {
+        document.getElementById('delete-product-id').value = productId;
+        document.getElementById('delete-product-name-display').textContent = productName;
+        document.getElementById('confirm-delete-modal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('confirm-delete-modal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // ── Inicializar listeners de modales al cargar el DOM ──────────
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // ── Formulario de Edición ────────────────────────────────────
+        const editForm = document.getElementById('edit-product-form');
+        if (editForm) {
+            editForm.addEventListener('submit', async () => {
+                const supabase = window._supabaseClientRef;
+                if (!supabase) {
+                    alert('Supabase no está disponible. Verifica la configuración.');
+                    return;
+                }
+
+                const id           = document.getElementById('edit-product-id').value;
+                const rawPrice     = parseFloat(document.getElementById('edit-product-price').value) || 0;
+                const rawSalePrice = parseFloat(document.getElementById('edit-product-sale-price').value) || null;
+
+                const updateData = {
+                    name:        document.getElementById('edit-product-name').value.trim(),
+                    sku:         document.getElementById('edit-product-sku').value.trim(),
+                    category:    document.getElementById('edit-product-category').value,
+                    price:       Math.round(rawPrice * 100) / 100,
+                    sale_price:  rawSalePrice !== null ? Math.round(rawSalePrice * 100) / 100 : null,
+                    stock:       parseInt(document.getElementById('edit-product-stock').value) || 0,
+                    description: document.getElementById('edit-product-description').value.trim(),
+                };
+
+                const submitBtn = document.getElementById('submit-edit-btn');
+                const originalHtml = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div><span>Guardando...</span>';
+
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .update(updateData)
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    closeEditModal();
+                    // El Realtime subscription en el módulo ES actualizará la tabla automáticamente.
+                    // Como fallback disparamos un refresco manual:
+                    if (typeof window._refreshProductTableFn === 'function') {
+                        window._refreshProductTableFn();
+                    }
+                    // Toast de éxito via función global del módulo
+                    const evt = new CustomEvent('pv:toast', { detail: { icon: 'check_circle', msg: 'Producto actualizado correctamente.', type: 'success' }});
+                    document.dispatchEvent(evt);
+                } catch (err) {
+                    console.error('Error actualizando producto:', err);
+                    const evt = new CustomEvent('pv:toast', { detail: { icon: 'error', msg: `Error: ${err.message}`, type: 'error' }});
+                    document.dispatchEvent(evt);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHtml;
+                }
+            });
+        }
+
+        // ── Botón de Confirmación de Eliminación ─────────────────────
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', async () => {
+                const supabase = window._supabaseClientRef;
+                if (!supabase) return;
+
+                const id = document.getElementById('delete-product-id').value;
+                const originalHtml = confirmBtn.innerHTML;
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
+
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    closeDeleteModal();
+                    // El canal Realtime propagará la eliminación a filterAndRenderProducts()
+                    if (typeof window._refreshProductTableFn === 'function') {
+                        window._refreshProductTableFn();
+                    }
+                    const evt = new CustomEvent('pv:toast', { detail: { icon: 'check_circle', msg: 'Producto eliminado correctamente.', type: 'success' }});
+                    document.dispatchEvent(evt);
+                } catch (err) {
+                    console.error('Error eliminando producto:', err);
+                    const evt = new CustomEvent('pv:toast', { detail: { icon: 'error', msg: `Error al eliminar: ${err.message}`, type: 'error' }});
+                    document.dispatchEvent(evt);
+                } finally {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalHtml;
+                }
+            });
+        }
+
+        // ── Escuchar eventos de Toast cross-script ───────────────────
+        document.addEventListener('pv:toast', (e) => {
+            const { icon, msg, type } = e.detail;
+            const toast    = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMsg  = document.getElementById('toast-message');
+            if (!toast || !toastIcon || !toastMsg) return;
+            toastIcon.textContent = icon;
+            toastMsg.textContent  = msg;
+            toastIcon.className   = `material-symbols-outlined ${type === 'error' ? 'text-red-500' : type === 'warning' ? 'text-secondary' : 'text-primary'}`;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 4000);
+        });
+    });
+    </script>
+
+    <!-- ══ MODAL: EDITAR PRODUCTO ══════════════════════════════ -->
+    <div class="fixed inset-0 z-[65] flex items-center justify-center hidden" id="edit-product-modal">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeEditModal()"></div>
+        <div class="glass-modal w-full max-w-2xl rounded-3xl overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200">
+            <div class="p-8 border-b border-white/10 flex justify-between items-center">
+                <h3 class="font-headline-sm text-headline-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">edit</span>
+                    Editar Producto
+                </h3>
+                <button class="p-2 hover:bg-white/10 rounded-full transition-colors" onclick="closeEditModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="edit-product-form" onsubmit="event.preventDefault();" class="contents">
+                <input type="hidden" id="edit-product-id" />
+                <div class="p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-260px)]">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Nombre del Producto</label>
+                            <input id="edit-product-name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">SKU Code</label>
+                            <input id="edit-product-sku" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Categoría</label>
+                            <select id="edit-product-category" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface">
+                                <option value="Dairy-Free" class="bg-surface">Dairy-Free</option>
+                                <option value="Confectionery" class="bg-surface">Confectionery</option>
+                                <option value="Beverage" class="bg-surface">Beverage</option>
+                                <option value="Bakery" class="bg-surface">Bakery</option>
+                                <option value="Vegan Meat" class="bg-surface">Vegan Meat</option>
+                                <option value="Other" class="bg-surface">Other</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Precio (Bs.)</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">Bs.</span>
+                                <input id="edit-product-price" required min="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="0.00" type="number"/>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Precio de Oferta <span class="normal-case text-[10px] opacity-60">(opcional)</span></label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">Bs.</span>
+                                <input id="edit-product-sale-price" min="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary text-sm text-on-surface" placeholder="0.00" type="number"/>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Stock</label>
+                            <input id="edit-product-stock" required min="0" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="0" type="number"/>
+                        </div>
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Descripción</label>
+                            <textarea id="edit-product-description" rows="2" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-8 bg-white/5 border-t border-white/10 flex gap-4">
+                    <button type="button" class="flex-1 py-4 rounded-xl border border-white/10 font-bold hover:bg-white/10 transition-colors" onclick="closeEditModal()">Cancelar</button>
+                    <button type="submit" id="submit-edit-btn" class="flex-1 py-4 rounded-xl bg-primary text-on-primary font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">save</span>
+                        <span>Guardar Cambios</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══ MODAL: CONFIRMAR ELIMINACIÓN ═══════════════════════════ -->
+    <div class="fixed inset-0 z-[66] flex items-center justify-center hidden" id="confirm-delete-modal">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+        <div class="glass-modal w-full max-w-md rounded-3xl p-8 relative shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/20 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-red-400 text-3xl" style="font-variation-settings:'FILL' 1">delete_forever</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-on-surface">¿Eliminar producto?</h3>
+                    <p class="text-xs text-on-surface-variant mt-1">Esta acción no se puede deshacer.</p>
+                </div>
+            </div>
+            <div class="p-4 rounded-2xl bg-red-500/8 border border-red-500/15">
+                <p class="text-sm text-on-surface-variant">Estás a punto de eliminar permanentemente:</p>
+                <p id="delete-product-name-display" class="text-sm font-bold text-red-400 mt-1 truncate"></p>
+            </div>
+            <input type="hidden" id="delete-product-id" />
+            <div class="flex gap-4 pt-2">
+                <button type="button" onclick="closeDeleteModal()"
+                        class="flex-1 py-3.5 rounded-xl border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirm-delete-btn" type="button"
+                        class="flex-1 py-3.5 rounded-xl bg-red-500 text-white font-bold text-sm shadow-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">delete_forever</span>
+                    <span>Sí, eliminar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

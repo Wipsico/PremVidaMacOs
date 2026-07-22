@@ -1,247 +1,374 @@
 <!DOCTYPE html>
-<html class="dark" lang="es">
+<html lang="es" class="dark">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prem Vida Admin - Configuración</title>
-    <!-- Tailwind CSS & Plugins -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <!-- Supabase JS Library -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #09090b;
-            color: #e5e1e4;
+            background: #09090b;
+            color: #f4f4f5;
             overflow-x: hidden;
         }
 
         .glass-card {
-            background: rgba(19, 19, 21, 0.6);
-            backdrop-filter: blur(40px) saturate(180%);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            border-left: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+            background: rgba(19, 19, 21, 0.72);
+            backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 30px 60px -18px rgba(0, 0, 0, 0.75);
         }
 
-        .glass-modal {
-            background: rgba(19, 19, 21, 0.8);
-            backdrop-filter: blur(24px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        .glass-muted {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
     </style>
-    <!-- Shared Logic for Session and Connection -->
     <script src="js/core/shared.js" defer></script>
 </head>
-<body class="flex min-h-screen">
-    <!-- Sidebar Navigation -->
-    <aside class="w-[280px] h-screen sticky left-0 top-0 bg-surface/60 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-8 px-6 z-50">
+<body class="flex min-h-screen bg-[#09090b] text-zinc-100">
+    <aside class="w-[280px] h-screen sticky left-0 top-0 bg-zinc-950/70 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.45)] flex flex-col py-8 px-6 z-50">
         <div class="flex items-center gap-3 mb-10">
-            <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
-                <span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">eco</span>
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/15 border border-emerald-400/20">
+                <span class="material-symbols-outlined text-emerald-400" style="font-variation-settings: 'FILL' 1;">eco</span>
             </div>
             <div>
-                <h1 class="font-bold text-lg text-on-surface leading-tight">Prem Vida</h1>
-                <p class="text-xs text-on-surface-variant uppercase tracking-widest">Admin Suite</p>
+                <h1 class="font-bold text-lg leading-tight text-zinc-100">Prem Vida</h1>
+                <p class="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Admin Suite</p>
             </div>
         </div>
         <nav class="flex-1 space-y-2">
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="dashboard.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="dashboard.html">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium text-sm">Dashboard</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="code.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="code.html">
                 <span class="material-symbols-outlined">inventory_2</span>
                 <span class="font-medium text-sm">Inventory</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="orders.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="orders.html">
                 <span class="material-symbols-outlined">shopping_cart</span>
                 <span class="font-medium text-sm">Orders</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="customers.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="customers.html">
                 <span class="material-symbols-outlined">group</span>
                 <span class="font-medium text-sm">Customers</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="analytics.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="analytics.html">
                 <span class="material-symbols-outlined">monitoring</span>
                 <span class="font-medium text-sm">Analytics</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-primary font-bold border-r-2 border-primary bg-white/5 transition-colors" href="settings.html">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-emerald-300 font-bold border-r-2 border-emerald-400 bg-white/5 transition-colors nav-active" href="settings.html">
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
                 <span class="font-medium text-sm">Settings</span>
             </a>
         </nav>
         <div class="mt-auto pt-10 space-y-2">
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-white/5 transition-colors" href="#">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 transition-colors" href="settings.html">
                 <span class="material-symbols-outlined">help</span>
                 <span class="font-medium text-sm">Support</span>
             </a>
         </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 relative min-h-screen">
-        <!-- Top App Bar -->
-        <header class="sticky top-0 z-40 bg-surface/60 backdrop-blur-[40px] border-b border-white/20 h-20 px-8 flex justify-between items-center shadow-lg">
+    <main class="flex-1 min-h-screen">
+        <header class="sticky top-0 z-40 h-20 px-8 flex justify-between items-center border-b border-white/10 bg-zinc-950/70 backdrop-blur-[40px] shadow-lg">
             <div class="flex items-center gap-8">
-                <h2 class="font-bold text-lg text-on-surface">Configuración general</h2>
+                <h2 class="font-bold text-lg text-zinc-100">Configuración general</h2>
                 <div class="h-6 w-px bg-white/10"></div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-on-surface-variant uppercase tracking-wider">Modo Mantenimiento</span>
+                    <span class="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Modo mantenimiento</span>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input class="sr-only peer maintenance-toggle" type="checkbox"/>
-                        <div class="w-11 h-6 bg-white/10 rounded-full toggle-track transition-colors duration-200 peer-checked:bg-primary-container">
-                            <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full toggle-thumb transition-transform duration-200 peer-checked:translate-x-5"></div>
+                        <input id="maintenance-toggle-header" class="sr-only peer" type="checkbox" />
+                        <div class="w-11 h-6 rounded-full bg-white/10 transition-colors peer-checked:bg-emerald-500/30">
+                            <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
                         </div>
                     </label>
                 </div>
             </div>
             <div class="flex items-center gap-6">
-                <!-- Status icon button -->
-                <button id="config-db-btn" class="p-2 rounded-full hover:bg-white/5 transition-colors relative group" title="Configure Supabase" onclick="window.location.reload()">
-                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">database</span>
+                <button id="config-db-btn" class="p-2 rounded-full hover:bg-white/5 transition-colors relative group" title="Ver estado del sistema" onclick="window.location.reload()">
+                    <span class="material-symbols-outlined text-zinc-400 group-hover:text-emerald-400">database</span>
                     <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden" id="db-status-dot"></span>
                 </button>
-                <button class="relative p-2 rounded-full hover:bg-white/5 transition-colors">
-                    <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+                <button id="btn-notifications" class="relative p-2 rounded-full hover:bg-white/5 transition-colors" title="Alertas de Merma / Vencimiento">
+                    <span class="material-symbols-outlined text-zinc-400">notifications</span>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full"></span>
                 </button>
-                <!-- Avatar container will get the dropdown dynamically from shared.js -->
                 <div class="w-10 h-10 rounded-full overflow-hidden border border-white/20">
-                    <img class="w-full h-full object-cover" data-alt="Admin avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQrv0wovpjNfo4jP1r9-H1QAx_9JEUF9MCI5yQyksxiu-bAUOxtxCnjgDBUBKVLmwQhTo5mkdcUNb8SU0CI3bv1MgbcAzoyPvdCr4c54jsRGulR6q3kZTthzJIYWztZPZ9xKQJJrVdik1xoTQs65MkjFIrfJyc5CoG_yzPcGadgdOSakOaRCTQQEVX5kP4T3yYM_do_BYKCg3I0CanWZoVs6mPUIcyWFlWhVpQiSxMzuAuH3tAYg1H7O25NN8x11HmIJDpdznCoEc"/>
+                    <img class="w-full h-full object-cover" data-alt="Admin avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQrv0wovpjNfo4jP1r9-H1QAx_9JEUF9MCI5yQyksxiu-bAUOxtxCnjgDBUBKVLmwQhTo5mkdcUNb8SU0CI3bv1MgbcAzoyPvdCr4c54jsRGulR6q3kZTthzJIYWztZPZ9xKQJJrVdik1xoTQs65MkjFIrfJyc5CoG_yzPcGadgdOSakOaRCTQQEVX5kP4T3yYM_do_BYKCg3I0CanWZoVs6mPUIcyWFlWhVpQiSxMzuAuH3tAYg1H7O25NN8x11HmIJDpdznCoEc" />
                 </div>
             </div>
         </header>
 
-        <!-- Stage Container -->
-        <div class="p-8 space-y-8 max-w-[1200px] mx-auto">
-            <div class="glass-card rounded-3xl p-8 max-w-2xl mx-auto space-y-6">
-                <div class="border-b border-white/10 pb-4">
-                    <h3 class="font-bold text-xl text-on-surface flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">database</span> Credenciales de Base de Datos
-                    </h3>
-                    <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
-                        Configura los parámetros de conexión de tu proyecto de Supabase para activar la persistencia de datos en la nube, la carga de fotos y la suscripción en tiempo real.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Supabase URL</label>
-                        <input id="input-url" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="https://xxxxxxxxxxxxxx.supabase.co" />
+        <div class="p-8">
+            <div class="grid gap-8 xl:grid-cols-[1.2fr_0.8fr] max-w-[1400px] mx-auto">
+                <section class="glass-card rounded-3xl p-8 space-y-6">
+                    <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+                        <div>
+                            <h3 class="font-bold text-xl flex items-center gap-2 text-zinc-100">
+                                <span class="material-symbols-outlined text-emerald-400">tune</span>
+                                Parámetros del sistema
+                            </h3>
+                            <p class="text-sm text-zinc-400 mt-2 leading-relaxed">
+                                Ajusta los valores globales de la suite para stock, bonos, entregas y modo de mantenimiento en Bolivia.
+                            </p>
+                        </div>
+                        <button id="btn-save-settings" class="px-4 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-sm shadow-lg shadow-emerald-500/15 hover:brightness-110 transition-all">
+                            Guardar cambios
+                        </button>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Anon API Key</label>
-                        <input id="input-key" type="password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="Clave anónima pública del proyecto (anon public)" />
-                    </div>
-                </div>
 
-                <!-- Anti-Hibernation Developer Note -->
-                <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs text-amber-200/90 leading-relaxed flex gap-3">
-                    <span class="material-symbols-outlined text-amber-400 text-lg mt-0.5">info</span>
-                    <div>
-                        <p class="font-bold text-amber-300">Nota de Mantenimiento (Servidores Gratuitos):</p>
-                        <p class="mt-1">
-                            Las instancias gratuitas de Supabase entran en suspensión automática tras periodos de inactividad. En caso de inactividad, se recomienda verificar o despertar el servidor ingresando al Supabase Dashboard y haciendo clic en 'Restore Project' si nota retrasos o fallos en los WebSockets o el Storage.
-                        </p>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="space-y-2 md:col-span-2">
+                            <span id="label-preferred-language" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Idioma de interfaz</span>
+                            <select id="preferred-language" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none">
+                                <option value="es">Español</option>
+                                <option value="en">English</option>
+                            </select>
+                        </label>
+                        <label class="space-y-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Umbral de stock crítico</span>
+                            <input id="stock-alert-threshold" type="number" min="0" step="1" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
+                        </label>
+                        <label class="space-y-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Multiplicador de bonos</span>
+                            <input id="bonus-multiplier" type="number" min="1" max="3" step="0.01" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
+                        </label>
+                        <label class="space-y-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Tarifa de entrega (Bs.)</span>
+                            <input id="delivery-fee-bs" type="number" min="0" step="0.01" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
+                        </label>
+                        <label class="space-y-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Nombre de la tienda</span>
+                            <input id="store-name" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
+                        </label>
+                        <label class="space-y-2 md:col-span-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Número de WhatsApp</span>
+                            <input id="whatsapp-number" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" placeholder="591xxxxxxxx" />
+                        </label>
+                        <div class="md:col-span-2 glass-muted rounded-2xl p-4 flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-zinc-100">Modo mantenimiento</p>
+                                <p class="text-sm text-zinc-400">Activa bloqueos operativos globales para la suite.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="maintenance-mode" class="sr-only peer" type="checkbox" />
+                                <div class="w-11 h-6 rounded-full bg-white/10 transition-colors peer-checked:bg-emerald-500/30">
+                                    <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
+                                </div>
+                            </label>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="flex gap-4 pt-4 border-t border-white/10">
-                    <button id="btn-test" class="flex-1 py-3 rounded-xl border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-lg">sync_alt</span>
-                        <span>Probar Conexión</span>
-                    </button>
-                    <button id="btn-save" class="flex-1 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-lg">save</span>
-                        <span>Guardar Configuración</span>
-                    </button>
-                </div>
+                <section class="glass-card rounded-3xl p-8 space-y-5">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                        <div>
+                            <h3 class="font-bold text-lg flex items-center gap-2 text-zinc-100">
+                                <span class="material-symbols-outlined text-sky-400">terminal</span>
+                                Consola de auditoría
+                            </h3>
+                            <p class="text-sm text-zinc-400 mt-1">Seguimiento de operaciones del sistema.</p>
+                        </div>
+                        <button id="btn-refresh-logs" class="rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors">
+                            Refrescar
+                        </button>
+                    </div>
+                    <div id="audit-log-list" class="space-y-3 max-h-[560px] overflow-y-auto pr-1"></div>
+                </section>
             </div>
         </div>
 
-        <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-            <span id="toast-icon" class="material-symbols-outlined text-primary">check_circle</span>
-            <p id="toast-message" class="text-sm font-medium text-on-surface"></p>
+        <div id="toast" class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl border border-white/10 bg-zinc-950/90 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+            <span id="toast-icon" class="material-symbols-outlined text-emerald-400">check_circle</span>
+            <p id="toast-message" class="text-sm font-medium text-zinc-100"></p>
         </div>
     </main>
 
-    <script>
-        // Load initial inputs from local storage
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('input-url').value = localStorage.getItem('supabaseUrl') || '';
-            document.getElementById('input-key').value = localStorage.getItem('supabaseKey') || '';
-            
-            // Check status dot
-            const dot = document.getElementById('db-status-dot');
-            if (dot && (!localStorage.getItem('supabaseUrl') || !localStorage.getItem('supabaseKey'))) {
-                dot.classList.remove('hidden');
-            }
-        });
+    <script type="module">
+        import { fetchSystemSettings, updateSystemSettings, fetchAuditLogs } from './js/core/settings-logic.js';
 
-        // Test connection
-        document.getElementById('btn-test').addEventListener('click', async () => {
-            const url = document.getElementById('input-url').value.trim();
-            const key = document.getElementById('input-key').value.trim();
-            const btn = document.getElementById('btn-test');
-            const originalText = btn.innerHTML;
+        const supabase = window.supabaseClient;
+        const fields = {
+            preferredLanguage: document.getElementById('preferred-language'),
+            stockAlertThreshold: document.getElementById('stock-alert-threshold'),
+            bonusMultiplier: document.getElementById('bonus-multiplier'),
+            deliveryFeeBs: document.getElementById('delivery-fee-bs'),
+            storeName: document.getElementById('store-name'),
+            whatsappNumber: document.getElementById('whatsapp-number'),
+            maintenanceMode: document.getElementById('maintenance-mode'),
+            maintenanceHeader: document.getElementById('maintenance-toggle-header'),
+            saveButton: document.getElementById('btn-save-settings'),
+            refreshButton: document.getElementById('btn-refresh-logs'),
+            auditList: document.getElementById('audit-log-list'),
+        };
 
-            if (!url || !key) {
-                showToast('warning', 'Ingresa la URL y la Key para realizar la prueba.', 'warning');
+        const I18N = {
+            es: {
+                languageLabel: 'Idioma de interfaz',
+                settingsTitle: 'Configuración general',
+                saveSuccess: 'Parámetros actualizados correctamente.',
+                auditRefresh: 'Auditoría actualizada.',
+            },
+            en: {
+                languageLabel: 'Interface language',
+                settingsTitle: 'General settings',
+                saveSuccess: 'Settings updated successfully.',
+                auditRefresh: 'Audit refreshed.',
+            },
+        };
+
+        function getCurrentLanguage() {
+            const saved = localStorage.getItem('premvida_lang') || fields.preferredLanguage?.value || 'es';
+            return ['es', 'en'].includes(saved) ? saved : 'es';
+        }
+
+        function applyLanguage(lang) {
+            const safeLang = ['es', 'en'].includes(lang) ? lang : 'es';
+            localStorage.setItem('premvida_lang', safeLang);
+            if (fields.preferredLanguage) fields.preferredLanguage.value = safeLang;
+            const dict = I18N[safeLang];
+            const label = document.getElementById('label-preferred-language');
+            if (label) label.textContent = dict.languageLabel;
+            const title = document.querySelector('header h2');
+            if (title) title.textContent = dict.settingsTitle;
+            document.documentElement.lang = safeLang;
+        }
+
+        function showToast(message, type = 'success') {
+            if (window.showToast) {
+                window.showToast(type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'check_circle', message, type);
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerHTML = `<div class="w-5 h-5 border-2 border-on-surface border-t-transparent rounded-full animate-spin"></div><span>Conectando...</span>`;
-
-            try {
-                const testClient = supabase.createClient(url, key);
-                const { data, error } = await testClient.from('products').select('id').limit(1);
-                
-                if (error) {
-                    throw error;
-                }
-
-                showToast('check_circle', '¡Conexión establecida con éxito con Supabase!', 'success');
-            } catch (err) {
-                console.error(err);
-                showToast('error', `Fallo de conexión: ${err.message || 'Verifica las credenciales y el estado del servidor.'}`, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
-
-        // Save settings
-        document.getElementById('btn-save').addEventListener('click', () => {
-            const url = document.getElementById('input-url').value.trim();
-            const key = document.getElementById('input-key').value.trim();
-
-            if (!url || !key) {
-                showToast('warning', 'Ambos campos son obligatorios para guardar.', 'warning');
-                return;
-            }
-
-            localStorage.setItem('supabaseUrl', url);
-            localStorage.setItem('supabaseKey', key);
-
-            // Hide dot
-            const dot = document.getElementById('db-status-dot');
-            if (dot) dot.classList.add('hidden');
-
-            showToast('check_circle', 'Configuración guardada correctamente.', 'success');
-
-            // Reload application after short delay to apply client initialization
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMessage = document.getElementById('toast-message');
+            if (!toast || !toastIcon || !toastMessage) return;
+            toastIcon.textContent = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'check_circle';
+            toastIcon.className = `material-symbols-outlined ${type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-amber-400' : 'text-emerald-400'}`;
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
             setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 4200);
+        }
+
+        function bindSettings(settings) {
+            fields.stockAlertThreshold.value = settings.stock_alert_threshold ?? 5;
+            fields.bonusMultiplier.value = settings.bonus_multiplier ?? 1;
+            fields.deliveryFeeBs.value = settings.delivery_fee_bs ?? 15;
+            fields.storeName.value = settings.store_name || 'Prem Vida';
+            fields.whatsappNumber.value = settings.whatsapp_number || '';
+            applyLanguage(settings.preferred_language || getCurrentLanguage());
+            const maintenance = Boolean(settings.maintenance_mode);
+            fields.maintenanceMode.checked = maintenance;
+            fields.maintenanceHeader.checked = maintenance;
+        }
+
+        async function loadSettings() {
+            try {
+                const settings = await fetchSystemSettings(supabase);
+                bindSettings(settings);
+                return settings;
+            } catch (error) {
+                console.error(error);
+                showToast('No fue posible cargar los parámetros del sistema.', 'warning');
+            }
+        }
+
+        function renderAuditLogs(logs) {
+            if (!fields.auditList) return;
+            if (!logs || logs.length === 0) {
+                fields.auditList.innerHTML = `
+                    <div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-zinc-400">
+                        No hay eventos de auditoría disponibles por el momento.
+                    </div>`;
+                return;
+            }
+
+            fields.auditList.innerHTML = logs.map((entry) => {
+                const timestamp = entry.created_at ? new Date(entry.created_at).toLocaleString('es-BO') : 'Sin fecha';
+                const operationClass = entry.operation === 'DELETE' ? 'text-rose-300' : entry.operation === 'UPDATE' ? 'text-amber-300' : 'text-emerald-300';
+                return `
+                    <details class="rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <summary class="flex cursor-pointer items-start justify-between gap-3 list-none">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${operationClass}">${entry.operation || 'EVENT'}</span>
+                                    <span class="text-xs font-semibold text-zinc-200">${entry.table || 'Sistema'}</span>
+                                </div>
+                                <p class="mt-2 text-sm text-zinc-300">${entry.summary || 'Evento registrado'}</p>
+                                <p class="mt-1 text-[11px] text-zinc-500">${timestamp}</p>
+                            </div>
+                            <span class="material-symbols-outlined text-zinc-500">expand_more</span>
+                        </summary>
+                        <pre class="mt-3 max-h-48 overflow-auto rounded-xl bg-zinc-950/80 p-3 text-[11px] whitespace-pre-wrap text-zinc-400">${JSON.stringify(entry.raw || {}, null, 2)}</pre>
+                    </details>`;
+            }).join('');
+        }
+
+        async function refreshAuditLogs() {
+            try {
+                const logs = await fetchAuditLogs(supabase, 40);
+                renderAuditLogs(logs);
+            } catch (error) {
+                console.error(error);
+                showToast('No fue posible refrescar la auditoría.', 'warning');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSettings();
+            await refreshAuditLogs();
+
+            fields.saveButton.addEventListener('click', async () => {
+                try {
+                    const payload = {
+                        stock_alert_threshold: fields.stockAlertThreshold.value,
+                        bonus_multiplier: fields.bonusMultiplier.value,
+                        delivery_fee_bs: fields.deliveryFeeBs.value,
+                        store_name: fields.storeName.value,
+                        whatsapp_number: fields.whatsappNumber.value,
+                        preferred_language: fields.preferredLanguage.value,
+                        maintenance_mode: fields.maintenanceMode.checked,
+                    };
+
+                    const settings = await updateSystemSettings(supabase, payload);
+                    bindSettings(settings);
+                    showToast(I18N[getCurrentLanguage()].saveSuccess, 'success');
+                    await refreshAuditLogs();
+                } catch (error) {
+                    console.error(error);
+                    showToast(error.message || 'No fue posible guardar la configuración.', 'error');
+                }
+            });
+
+            fields.refreshButton.addEventListener('click', async () => {
+                await refreshAuditLogs();
+                showToast(I18N[getCurrentLanguage()].auditRefresh, 'info');
+            });
+
+            fields.preferredLanguage.addEventListener('change', () => {
+                applyLanguage(fields.preferredLanguage.value);
+            });
+
+            [fields.maintenanceMode, fields.maintenanceHeader].forEach((input) => {
+                input.addEventListener('change', () => {
+                    fields.maintenanceMode.checked = input.checked;
+                    fields.maintenanceHeader.checked = input.checked;
+                });
+            });
         });
     </script>
 </body>

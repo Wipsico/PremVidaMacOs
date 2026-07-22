@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Prem Vida Admin – Personal & Nómina</title>
+    <meta name="description" content="Gestión de empleados, tarifas, historial de pagos y nómina mensual de Prem Vida en Bolivianos (Bs.)."/>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #e5e1e4;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(19,19,21,0.6);
+            backdrop-filter: blur(40px) saturate(180%);
+            border-top: 1px solid rgba(255,255,255,0.15);
+            border-left: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7), inset 0 1px 0 0 rgba(255,255,255,0.05);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+        }
+        .nav-active {
+            color: #4edea3;
+            font-weight: 700;
+            border-right: 2px solid #4edea3;
+            background: rgba(255,255,255,0.05);
+        }
+        .nav-inactive { color: #bbcabf; }
+        .nav-inactive:hover { background: rgba(255,255,255,0.05); }
+        @keyframes counter-up {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .counter-anim { animation: counter-up 0.5s ease forwards; }
+        /* Scrollbar personalizado */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+        /* Input dark */
+        input[type="text"], input[type="number"], input[type="date"], select {
+            color-scheme: dark;
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'surface':             '#131315',
+                        'primary':             '#4edea3',
+                        'primary-container':   '#10b981',
+                        'on-primary':          '#003824',
+                        'on-primary-container':'#00422b',
+                        'secondary':           '#ffb95f',
+                        'on-surface':          '#e5e1e4',
+                        'on-surface-variant':  '#bbcabf',
+                        'surface-container':   '#201f22',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex min-h-screen">
+
+<!-- ══════════════════════════════════════════
+     SIDEBAR NAVIGATION
+══════════════════════════════════════════ -->
+<aside class="w-[280px] h-screen sticky left-0 top-0 bg-surface/60 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-8 px-6 z-50">
+    <div class="flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined text-on-primary-container text-xl" style="font-variation-settings:'FILL' 1">eco</span>
+        </div>
+        <div>
+            <h1 class="font-bold text-base text-on-surface leading-tight">Prem Vida</h1>
+            <p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Admin Suite</p>
+        </div>
+    </div>
+    <nav class="flex-1 space-y-1">
+        <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span class="text-sm">Dashboard</span>
+        </a>
+        <a href="code.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <span class="text-sm">Inventory</span>
+        </a>
+        <a href="orders.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <span class="text-sm">Orders</span>
+        </a>
+        <a href="customers.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">group</span>
+            <span class="text-sm">Customers</span>
+        </a>
+        <a href="analytics.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">monitoring</span>
+            <span class="text-sm">Analytics</span>
+        </a>
+        <a href="personal.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-active">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">badge</span>
+            <span class="text-sm font-medium">Personal & Nómina</span>
+        </a>
+        <a href="settings.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
+            <span class="material-symbols-outlined">settings</span>
+            <span class="text-sm">Settings</span>
+        </a>
+    </nav>
+    <div class="mt-auto pt-6 space-y-1 border-t border-white/10">
+        <button id="btn-sidebar-logout" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/80 hover:bg-red-500/10 transition-colors">
+            <span class="material-symbols-outlined">logout</span>
+            <span class="text-sm">Cerrar Sesión</span>
+        </button>
+    </div>
+</aside>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════ -->
+<main class="flex-1 relative min-h-screen">
+
+    <!-- TOP APP BAR -->
+    <header class="sticky top-0 z-40 bg-surface/60 backdrop-blur-[40px] border-b border-white/20 h-20 px-8 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-6">
+            <h2 class="font-bold text-lg text-on-surface">Personal & Nómina</h2>
+            <div class="h-6 w-px bg-white/10"></div>
+            <span class="text-xs text-on-surface-variant uppercase tracking-widest">Gestión de Empleados</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="btn-refresh" title="Refrescar datos" class="p-2 rounded-full hover:bg-white/5 transition-colors group">
+                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">refresh</span>
+            </button>
+            <button id="btn-notifications" class="relative p-2 rounded-full hover:bg-white/5 transition-colors group" title="Alertas de Merma / Vencimiento">
+                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-amber-400 transition-colors">notifications</span>
+                <span class="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+            </button>
+            <!-- Avatar -->
+            <div class="relative">
+                <div class="w-10 h-10 rounded-full overflow-hidden border border-white/20 cursor-pointer hover:opacity-80 transition-opacity" id="avatar-btn">
+                    <img class="w-full h-full object-cover" alt="Admin avatar"
+                         src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=80&auto=format&fit=crop"/>
+                </div>
+                <div id="profile-dropdown" class="absolute right-0 top-14 w-52 rounded-2xl hidden z-50"
+                     style="background:rgba(19,19,21,0.95);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.12);">
+                    <div class="px-4 py-3 border-b border-white/5">
+                        <p class="text-sm font-semibold text-on-surface">Admin Prem Vida</p>
+                        <p class="text-xs text-on-surface-variant truncate">admin@premvida.com</p>
+                    </div>
+                    <div class="p-1">
+                        <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-white/5 text-sm transition-colors">
+                            <span class="material-symbols-outlined text-base">settings</span>Configuración
+                        </a>
+                        <button id="btn-logout" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 text-sm text-left transition-colors">
+                            <span class="material-symbols-outlined text-base">logout</span>Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- STAGE CONTAINER -->
+    <div class="p-8 space-y-8 max-w-[1600px] mx-auto">
+
+        <!-- ══ KPI BAR ══════════════════════════════════════════════════ -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+
+            <!-- KPI 1: Planilla Mensual Activa -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+                <div class="flex justify-between items-start">
+                    <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Planilla Mensual Activa</p>
+                    <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings:'FILL' 1">payments</span>
+                    </div>
+                </div>
+                <h3 id="kpi-payroll" class="text-3xl font-bold text-on-surface counter-anim">Bs. —</h3>
+                <div class="flex items-center gap-1.5 text-xs text-primary">
+                    <span class="material-symbols-outlined text-xs">calendar_month</span>
+                    <span id="kpi-payroll-label">Mes en curso</span>
+                </div>
+            </div>
+
+            <!-- KPI 2: Empleados Activos -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+                <div class="flex justify-between items-start">
+                    <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Empleados Activos</p>
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-blue-400 text-lg" style="font-variation-settings:'FILL' 1">badge</span>
+                    </div>
+                </div>
+                <h3 id="kpi-employees" class="text-3xl font-bold text-on-surface counter-anim">—</h3>
+                <div class="flex items-center gap-1.5 text-xs text-blue-400">
+                    <span class="material-symbols-outlined text-xs">check_circle</span>
+                    <span>Personal en servicio activo</span>
+                </div>
+            </div>
+
+            <!-- KPI 3: Pagos Pendientes -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+                <div class="flex justify-between items-start">
+                    <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Pagos Pendientes</p>
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-amber-400 text-lg" style="font-variation-settings:'FILL' 1">hourglass_top</span>
+                    </div>
+                </div>
+                <h3 id="kpi-pending" class="text-3xl font-bold text-on-surface counter-anim">—</h3>
+                <div class="flex items-center gap-1.5 text-xs text-amber-400">
+                    <span class="material-symbols-outlined text-xs">warning</span>
+                    <span>Registros en estado pendiente</span>
+                </div>
+            </div>
+
+            <!-- KPI 4: Rendimiento Diario Promedio -->
+            <div class="glass-card p-6 rounded-2xl space-y-3">
+                <div class="flex justify-between items-start">
+                    <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Rendimiento Diario Promedio</p>
+                    <div class="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-green-400 text-lg" style="font-variation-settings:'FILL' 1">speed</span>
+                    </div>
+                </div>
+                <h3 id="kpi-production" class="text-3xl font-bold text-on-surface counter-anim">0.00 u.</h3>
+                <div class="flex items-center gap-1.5 text-xs text-green-400">
+                    <span class="material-symbols-outlined text-xs">trending_up</span>
+                    <span>Eficiencia diaria del equipo</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ MAIN GRID: EMPLEADOS + NÓMINA ═══════════════════════════ -->
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-8">
+
+            <!-- Panel Empleados (60%) -->
+            <div class="xl:col-span-3 glass-card p-6 rounded-2xl flex flex-col gap-4">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <div>
+                        <h4 class="font-bold text-base text-on-surface flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1">group</span>
+                            Empleados
+                        </h4>
+                        <p class="text-xs text-on-surface-variant mt-0.5">Directorio de personal · Gestión de tarifas</p>
+                    </div>
+                    <button id="btn-new-employee"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all"
+                            style="background:#4edea3;color:#003824;box-shadow:0 8px 24px rgba(78,222,163,0.2)">
+                        <span class="material-symbols-outlined text-base">person_add</span>
+                        Nuevo Empleado
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">search</span>
+                    <input id="employee-search-input" type="text" autocomplete="off"
+                           class="w-full rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;"
+                           placeholder="Buscar operario por nombre, rol o estado..." />
+                </div>
+
+                <!-- Tabla de empleados -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-[10px] uppercase tracking-widest text-on-surface-variant border-b border-white/5">
+                                <th class="text-left pb-3 pl-1">Empleado</th>
+                                <th class="text-left pb-3">Rol</th>
+                                <th class="text-right pb-3">Salario Mensual</th>
+                                <th class="text-right pb-3">Prod. Diaria</th>
+                                <th class="text-center pb-3">Estado</th>
+                                <th class="text-right pb-3 pr-1">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employees-table-body" class="divide-y divide-white/5">
+                            <tr>
+                                <td colspan="6" class="py-10 text-center">
+                                    <div class="flex items-center justify-center gap-2 text-on-surface-variant">
+                                        <div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        <span class="text-xs">Cargando empleados...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Panel Historial Nómina (40%) -->
+            <div class="xl:col-span-2 glass-card p-6 rounded-2xl flex flex-col gap-4">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <div>
+                        <h4 class="font-bold text-base text-on-surface flex items-center gap-2">
+                            <span class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">receipt_long</span>
+                            Historial de Nómina
+                        </h4>
+                        <p class="text-xs text-on-surface-variant mt-0.5">Últimos 100 registros</p>
+                    </div>
+                    <button id="btn-register-payment"
+                            class="flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all border"
+                            style="border-color:rgba(255,185,95,0.4);color:#ffb95f;background:rgba(255,185,95,0.08)">
+                        <span class="material-symbols-outlined text-sm">add</span>
+                        Registrar Pago
+                    </button>
+                </div>
+
+                <!-- Filtro por empleado -->
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Filtrar por empleado</label>
+                    <select id="payroll-filter-employee"
+                            class="w-full rounded-xl px-3 py-2 text-xs focus:outline-none"
+                            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;">
+                        <option value="">Todos los empleados</option>
+                    </select>
+                </div>
+
+                <!-- Lista de pagos -->
+                <div id="payroll-list" class="flex-1 space-y-2 overflow-y-auto max-h-[420px] custom-scroll pr-1">
+                    <div class="flex items-center justify-center h-20">
+                        <div class="w-5 h-5 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <span id="toast-icon" class="material-symbols-outlined text-primary">check_circle</span>
+        <p id="toast-message" class="text-sm font-medium text-on-surface"></p>
+    </div>
+</main>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL: NUEVO EMPLEADO
+══════════════════════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-new-employee">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('modal-new-employee')"></div>
+    <div style="background:rgba(19,19,21,0.96);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
+         class="w-full max-w-md rounded-3xl p-8 relative shadow-2xl space-y-6 z-10">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2" style="color:#e5e1e4">
+                <span class="material-symbols-outlined" style="color:#4edea3;font-variation-settings:'FILL' 1">person_add</span>
+                Nuevo Empleado
+            </h3>
+            <button onclick="closeModal('modal-new-employee')" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <span class="material-symbols-outlined" style="color:#bbcabf">close</span>
+            </button>
+        </div>
+        <form id="form-new-employee" onsubmit="event.preventDefault();" class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Nombre Completo</label>
+                <input id="emp-name" required type="text" placeholder="Ej. María García"
+                       class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                       style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3"/>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Rol / Cargo</label>
+                <select id="emp-role" required
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3">
+                    <option value="" class="bg-surface">Seleccionar rol...</option>
+                    <option value="Cajero/a" class="bg-surface">Cajero/a</option>
+                    <option value="Almacenero/a" class="bg-surface">Almacenero/a</option>
+                    <option value="Repartidor/a" class="bg-surface">Repartidor/a</option>
+                    <option value="Administrador/a" class="bg-surface">Administrador/a</option>
+                    <option value="Atención al Cliente" class="bg-surface">Atención al Cliente</option>
+                    <option value="Otro" class="bg-surface">Otro</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Salario Mensual (Bs.)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:#bbcabf">Bs.</span>
+                    <input id="emp-hourly-rate" required min="0" step="0.01" type="number" placeholder="0.00"
+                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3"/>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeModal('modal-new-employee')"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+                        style="border:1px solid rgba(255,255,255,0.1);color:#e5e1e4">Cancelar</button>
+                <button type="submit" id="btn-submit-new-employee"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style="background:#4edea3;color:#003824;box-shadow:0 10px 30px rgba(78,222,163,0.25)">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Guardar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL: EDITAR EMPLEADO
+══════════════════════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-edit-employee">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('modal-edit-employee')"></div>
+    <div style="background:rgba(19,19,21,0.96);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
+         class="w-full max-w-md rounded-3xl p-8 relative shadow-2xl space-y-6 z-10">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2" style="color:#e5e1e4">
+                <span class="material-symbols-outlined" style="color:#4edea3;font-variation-settings:'FILL' 1">edit</span>
+                Editar Empleado
+            </h3>
+            <button onclick="closeModal('modal-edit-employee')" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <span class="material-symbols-outlined" style="color:#bbcabf">close</span>
+            </button>
+        </div>
+        <form id="form-edit-employee" onsubmit="event.preventDefault();" class="space-y-4">
+            <input type="hidden" id="edit-emp-id"/>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Nombre Completo</label>
+                <input id="edit-emp-name" required type="text"
+                       class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                       style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3"/>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Rol / Cargo</label>
+                <select id="edit-emp-role" required
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3">
+                    <option value="Cajero/a" class="bg-surface">Cajero/a</option>
+                    <option value="Almacenero/a" class="bg-surface">Almacenero/a</option>
+                    <option value="Repartidor/a" class="bg-surface">Repartidor/a</option>
+                    <option value="Administrador/a" class="bg-surface">Administrador/a</option>
+                    <option value="Atención al Cliente" class="bg-surface">Atención al Cliente</option>
+                    <option value="Otro" class="bg-surface">Otro</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Salario Mensual (Bs.)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:#bbcabf">Bs.</span>
+                    <input id="edit-emp-hourly-rate" required min="0" step="0.01" type="number"
+                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3"/>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeModal('modal-edit-employee')"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+                        style="border:1px solid rgba(255,255,255,0.1);color:#e5e1e4">Cancelar</button>
+                <button type="submit" id="btn-submit-edit-employee"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style="background:#4edea3;color:#003824;box-shadow:0 10px 30px rgba(78,222,163,0.25)">
+                    <span class="material-symbols-outlined text-base">check_circle</span>
+                    <span>Actualizar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL: REGISTRAR PAGO
+══════════════════════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-register-payment">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('modal-register-payment')"></div>
+    <div style="background:rgba(19,19,21,0.96);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
+         class="w-full max-w-md rounded-3xl p-8 relative shadow-2xl space-y-6 z-10">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2" style="color:#e5e1e4">
+                <span class="material-symbols-outlined" style="color:#ffb95f;font-variation-settings:'FILL' 1">payments</span>
+                Registrar Pago de Nómina
+            </h3>
+            <button onclick="closeModal('modal-register-payment')" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <span class="material-symbols-outlined" style="color:#bbcabf">close</span>
+            </button>
+        </div>
+        <form id="form-register-payment" onsubmit="event.preventDefault();" class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Empleado</label>
+                <select id="pay-employee-id" required
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f">
+                    <option value="" class="bg-surface">Seleccionar empleado...</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Monto (Bs.)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:#bbcabf">Bs.</span>
+                    <input id="pay-amount" required min="0.01" step="0.01" type="number" placeholder="0.00"
+                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f"/>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Fecha de Pago</label>
+                <input id="pay-date" required type="date"
+                       class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                       style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f"/>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Estado</label>
+                <select id="pay-status" required
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f">
+                    <option value="pagado" class="bg-surface">Pagado</option>
+                    <option value="pendiente" class="bg-surface">Pendiente</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeModal('modal-register-payment')"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+                        style="border:1px solid rgba(255,255,255,0.1);color:#e5e1e4">Cancelar</button>
+                <button type="submit" id="btn-submit-payment"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style="background:#ffb95f;color:#1a0f00;box-shadow:0 10px 30px rgba(255,185,95,0.25)">
+                    <span class="material-symbols-outlined text-base">check_circle</span>
+                    <span>Registrar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════════════ -->
+<script src="js/core/shared.js"></script>
+<script type="module">
+    import {
+        fetchEmployees,
+        fetchPayrollHistory,
+        fetchPayrollKPIs,
+        createEmployee,
+        updateEmployee,
+        toggleEmployeeActive,
+        registerPayment,
+        updatePaymentStatus,
+    } from './js/core/payroll-logic.js';
+
+    // ── Auth guard ──────────────────────────────────────────────────
+    // ── Supabase client ─────────────────────────────────────────────
+    const sbUrl = localStorage.getItem('supabaseUrl');
+    const sbKey = localStorage.getItem('supabaseKey');
+    let sb = null;
+    if (sbUrl && sbKey && typeof window.supabase !== 'undefined') {
+        try { sb = window.supabase.createClient(sbUrl, sbKey); }
+        catch (e) { console.warn('[personal.html] Supabase init error:', e); }
+    }
+
+    // ── State ────────────────────────────────────────────────────────
+    let allEmployees = [];
+    let employeeSearchTerm = '';
+
+    // ── DOM Ready ────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        setupAvatarDropdown();
+        setupLogout();
+        loadAll();
+
+        document.getElementById('btn-refresh').addEventListener('click', loadAll);
+        document.getElementById('btn-new-employee').addEventListener('click', () => openModal('modal-new-employee'));
+        document.getElementById('btn-register-payment').addEventListener('click', openRegisterPaymentModal);
+        document.getElementById('employee-search-input').addEventListener('input', (event) => {
+            employeeSearchTerm = event.target.value.toLowerCase().trim();
+            renderEmployeesTable();
+        });
+        document.getElementById('payroll-filter-employee').addEventListener('change', () => {
+            loadPayrollHistory(document.getElementById('payroll-filter-employee').value || null);
+        });
+
+        // Forms
+        document.getElementById('form-new-employee').addEventListener('submit', handleCreateEmployee);
+        document.getElementById('form-edit-employee').addEventListener('submit', handleEditEmployee);
+        document.getElementById('form-register-payment').addEventListener('submit', handleRegisterPayment);
+
+        // Sidebar logout
+        const sidebarLogout = document.getElementById('btn-sidebar-logout');
+        if (sidebarLogout) sidebarLogout.addEventListener('click', doLogout);
+    });
+
+    // ── Load All ─────────────────────────────────────────────────────
+    async function loadAll() {
+        // Cargar empleados primero para asegurar que allEmployees esté poblado antes de calcular KPIs
+        await loadEmployeesTable();
+        await Promise.allSettled([
+            loadKPIs(),
+            loadPayrollHistory(null),
+        ]);
+    }
+
+    // ── KPIs ─────────────────────────────────────────────────────────
+    async function loadKPIs() {
+        try {
+            const kpis = await fetchPayrollKPIs(sb);
+            animVal('kpi-payroll',   `Bs. ${kpis.monthlyPayroll.toFixed(2)}`);
+            animVal('kpi-employees', kpis.activeEmployees);
+            animVal('kpi-pending',   kpis.pendingPayments);
+
+            // Rendimiento Diario Promedio (promedio de la producción diaria de los empleados activos)
+            const activeEmps = allEmployees.filter(e => e.active);
+            const avgProd = activeEmps.length > 0
+                ? activeEmps.reduce((sum, e) => sum + (parseFloat(e.daily_production) || 0), 0) / activeEmps.length
+                : 0.00;
+            animVal('kpi-production', `${avgProd.toFixed(2)} u.`);
+
+            // Label dinámica con nombre del mes
+            const monthName = new Date().toLocaleString('es-BO', { month: 'long', year: 'numeric' });
+            document.getElementById('kpi-payroll-label').textContent =
+                `Costo mensual estimado · ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+        } catch (err) {
+            console.warn('KPI error:', err);
+            animVal('kpi-payroll',   'Bs. —');
+            animVal('kpi-employees', '—');
+            animVal('kpi-pending',   '—');
+            animVal('kpi-production', '—');
+        }
+    }
+
+    // ── Employees Table ───────────────────────────────────────────────
+    async function loadEmployeesTable() {
+        const tbody = document.getElementById('employees-table-body');
+        try {
+            allEmployees = await fetchEmployees(sb);
+            populateEmployeeSelects();
+            renderEmployeesTable();
+        } catch (err) {
+            console.error('loadEmployeesTable error:', err);
+            tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-xs text-red-400">
+                Error al cargar empleados: ${esc(err.message)}</td></tr>`;
+        }
+    }
+
+    function renderEmployeesTable() {
+        const tbody = document.getElementById('employees-table-body');
+        if (!tbody) return;
+
+        if (allEmployees.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-xs" style="color:#bbcabf">
+                Sin empleados registrados. Haz clic en "+ Nuevo Empleado" para comenzar.</td></tr>`;
+            return;
+        }
+
+        const filteredEmployees = allEmployees.filter((employee) => {
+            const searchable = [
+                employee.name,
+                employee.role,
+                employee.active ? 'activo' : 'inactivo',
+            ].join(' ').toLowerCase();
+            return searchable.includes(employeeSearchTerm);
+        });
+
+        if (filteredEmployees.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-xs" style="color:#bbcabf">
+                No se encontraron operarios para la busqueda aplicada.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filteredEmployees.map(e => `
+                <tr class="group hover:bg-white/3 transition-colors" data-id="${e.id}">
+                    <td class="py-3 pl-1">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                <span class="text-xs font-bold" style="color:#4edea3">${esc(e.name).charAt(0).toUpperCase()}</span>
+                            </div>
+                            <span class="text-sm font-medium" style="color:#e5e1e4">${esc(e.name)}</span>
+                        </div>
+                    </td>
+                    <td class="py-3">
+                        <span class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/10 text-blue-300">${esc(e.role)}</span>
+                    </td>
+                    <td class="py-3 text-right text-sm font-semibold" style="color:#4edea3">Bs. ${e.hourly_rate.toFixed(2)}</td>
+                    <td class="py-3 text-right text-sm font-semibold" style="color:#adc6ff">${e.daily_production.toFixed(2)} u.</td>
+                    <td class="py-3 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${e.active
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-white/5 text-on-surface-variant'}">
+                            ${e.active ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </td>
+                    <td class="py-3 pr-1 text-right">
+                        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openEditModal('${e.id}')" title="Editar"
+                                    class="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                                <span class="material-symbols-outlined text-base" style="color:#bbcabf">edit</span>
+                            </button>
+                            <button onclick="openPaymentModalFor('${e.id}')" title="Registrar Pago"
+                                    class="p-1.5 rounded-lg hover:bg-secondary/10 transition-colors">
+                                <span class="material-symbols-outlined text-base text-secondary">payments</span>
+                            </button>
+                            <button onclick="handleToggleActive('${e.id}', ${!e.active})"
+                                    title="${e.active ? 'Desactivar' : 'Activar'}"
+                                    class="p-1.5 rounded-lg transition-colors ${e.active ? 'hover:bg-red-500/10' : 'hover:bg-primary/10'}">
+                                <span class="material-symbols-outlined text-base ${e.active ? 'text-red-400' : 'text-primary'}">
+                                    ${e.active ? 'person_off' : 'person'}
+                                </span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+    }
+
+    // ── Payroll History ───────────────────────────────────────────────
+    async function loadPayrollHistory(employeeId = null) {
+        const el = document.getElementById('payroll-list');
+        el.innerHTML = `<div class="flex items-center justify-center h-16">
+            <div class="w-4 h-4 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div></div>`;
+        try {
+            const records = await fetchPayrollHistory(sb, employeeId);
+            if (records.length === 0) {
+                el.innerHTML = `<p class="text-xs text-center py-8" style="color:#bbcabf">Sin registros de nómina.</p>`;
+                return;
+            }
+            el.innerHTML = records.map(r => {
+                const empName = r.employees?.name || 'Empleado desconocido';
+                const isPaid  = r.status === 'pagado';
+                return `
+                <div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-white/5 hover:bg-white/5 transition-colors">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold truncate" style="color:#e5e1e4">${esc(empName)}</p>
+                        <p class="text-[10px]" style="color:#bbcabf">${formatDate(r.payment_date)}</p>
+                    </div>
+                    <div class="text-right shrink-0 space-y-1">
+                        <p class="text-xs font-bold" style="color:#ffb95f">Bs. ${r.amount_paid.toFixed(2)}</p>
+                        <div class="flex items-center gap-1 justify-end">
+                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${isPaid
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-amber-500/15 text-amber-300'}">
+                                ${isPaid ? 'Pagado' : 'Pendiente'}
+                            </span>
+                            ${!isPaid ? `<button onclick="handleMarkPaid('${r.id}')"
+                                title="Marcar como pagado"
+                                class="p-0.5 rounded hover:bg-primary/20 transition-colors">
+                                <span class="material-symbols-outlined text-sm text-primary">check_circle</span>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error('loadPayrollHistory error:', err);
+            el.innerHTML = `<p class="text-xs text-center py-6 text-red-400">Error: ${esc(err.message)}</p>`;
+        }
+    }
+
+    // ── Employee Selects ──────────────────────────────────────────────
+    function populateEmployeeSelects() {
+        const options = allEmployees
+            .filter(e => e.active)
+            .map(e => `<option value="${e.id}" class="bg-surface">${esc(e.name)} — ${esc(e.role)}</option>`)
+            .join('');
+
+        // Select del modal de pago
+        const paySelect = document.getElementById('pay-employee-id');
+        paySelect.innerHTML = `<option value="" class="bg-surface">Seleccionar empleado...</option>` + options;
+
+        // Select del filtro de historial
+        const filterSelect = document.getElementById('payroll-filter-employee');
+        filterSelect.innerHTML = `<option value="">Todos los empleados</option>` + options;
+    }
+
+    // ── Handlers ─────────────────────────────────────────────────────
+    async function handleCreateEmployee(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-submit-new-employee');
+        const orig = btn.innerHTML;
+        setLoading(btn, true);
+        try {
+            await createEmployee(sb, {
+                name:        document.getElementById('emp-name').value,
+                role:        document.getElementById('emp-role').value,
+                hourly_rate: document.getElementById('emp-hourly-rate').value,
+            });
+            closeModal('modal-new-employee');
+            document.getElementById('form-new-employee').reset();
+            toast('check_circle', 'Empleado creado correctamente.', 'success');
+            await loadAll();
+        } catch (err) {
+            toast('error', err.message, 'error');
+        } finally { setLoading(btn, false, orig); }
+    }
+
+    async function handleEditEmployee(e) {
+        e.preventDefault();
+        const id  = document.getElementById('edit-emp-id').value;
+        const btn = document.getElementById('btn-submit-edit-employee');
+        const orig = btn.innerHTML;
+        setLoading(btn, true);
+        try {
+            await updateEmployee(sb, id, {
+                name:        document.getElementById('edit-emp-name').value,
+                role:        document.getElementById('edit-emp-role').value,
+                hourly_rate: document.getElementById('edit-emp-hourly-rate').value,
+            });
+            closeModal('modal-edit-employee');
+            toast('check_circle', 'Empleado actualizado correctamente.', 'success');
+            await loadAll();
+        } catch (err) {
+            toast('error', err.message, 'error');
+        } finally { setLoading(btn, false, orig); }
+    }
+
+    async function handleRegisterPayment(e) {
+        e.preventDefault();
+        const btn  = document.getElementById('btn-submit-payment');
+        const orig = btn.innerHTML;
+        setLoading(btn, true);
+        try {
+            const amount = Math.round((parseFloat(document.getElementById('pay-amount').value) || 0) * 100) / 100;
+            await registerPayment(sb, {
+                employee_id:  document.getElementById('pay-employee-id').value,
+                payment_date: document.getElementById('pay-date').value,
+                amount_paid:  amount,
+                status:       document.getElementById('pay-status').value,
+            });
+            closeModal('modal-register-payment');
+            document.getElementById('form-register-payment').reset();
+            toast('check_circle', `Pago de Bs. ${amount.toFixed(2)} registrado.`, 'success');
+            await loadAll();
+        } catch (err) {
+            toast('error', err.message, 'error');
+        } finally { setLoading(btn, false, orig); }
+    }
+
+    // ── Global exposed handlers (called from inline HTML) ─────────────
+    window.openEditModal = (id) => {
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return;
+        document.getElementById('edit-emp-id').value         = emp.id;
+        document.getElementById('edit-emp-name').value       = emp.name;
+        document.getElementById('edit-emp-role').value       = emp.role;
+        document.getElementById('edit-emp-hourly-rate').value = emp.hourly_rate;
+        openModal('modal-edit-employee');
+    };
+
+    window.openPaymentModalFor = (employeeId) => {
+        document.getElementById('pay-employee-id').value = employeeId;
+        document.getElementById('pay-date').value        = new Date().toISOString().split('T')[0];
+        openModal('modal-register-payment');
+    };
+
+    window.handleToggleActive = async (id, newState) => {
+        try {
+            await toggleEmployeeActive(sb, id, newState);
+            toast('check_circle', `Empleado ${newState ? 'activado' : 'desactivado'}.`, newState ? 'success' : 'warning');
+            await loadAll();
+        } catch (err) { toast('error', err.message, 'error'); }
+    };
+
+    window.handleMarkPaid = async (payrollId) => {
+        try {
+            await updatePaymentStatus(sb, payrollId, 'pagado');
+            toast('check_circle', 'Pago marcado como pagado.', 'success');
+            loadPayrollHistory(document.getElementById('payroll-filter-employee').value || null);
+            loadKPIs();
+        } catch (err) { toast('error', err.message, 'error'); }
+    };
+
+    // ── Open register payment modal (via header button) ───────────────
+    function openRegisterPaymentModal() {
+        document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+        openModal('modal-register-payment');
+    }
+
+    // ── Modal helpers ─────────────────────────────────────────────────
+    window.openModal  = (id) => { document.getElementById(id).classList.remove('hidden'); document.body.classList.add('overflow-hidden'); };
+    window.closeModal = (id) => { document.getElementById(id).classList.add('hidden'); document.body.classList.remove('overflow-hidden'); };
+
+    // ── Avatar dropdown ───────────────────────────────────────────────
+    function setupAvatarDropdown() {
+        const btn  = document.getElementById('avatar-btn');
+        const drop = document.getElementById('profile-dropdown');
+        if (!btn || !drop) return;
+        btn.addEventListener('click', e => { e.stopPropagation(); drop.classList.toggle('hidden'); });
+        document.addEventListener('click', () => drop.classList.add('hidden'));
+        drop.addEventListener('click', e => e.stopPropagation());
+    }
+
+    function setupLogout() {
+        document.getElementById('btn-logout')?.addEventListener('click', doLogout);
+        document.getElementById('btn-sidebar-logout')?.addEventListener('click', doLogout);
+    }
+
+    async function doLogout() {
+        if (window.premVidaLogout) {
+            await window.premVidaLogout();
+            return;
+        }
+        window.location.href = 'login.html';
+    }
+
+    // ── UI Utilities ──────────────────────────────────────────────────
+    function animVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+        el.classList.remove('counter-anim');
+        void el.offsetWidth;
+        el.classList.add('counter-anim');
+    }
+
+    function toast(icon, msg, type = 'success') {
+        const t = document.getElementById('toast');
+        const i = document.getElementById('toast-icon');
+        const m = document.getElementById('toast-message');
+        if (!t || !i || !m) return;
+        i.textContent = icon;
+        m.textContent  = msg;
+        i.className = `material-symbols-outlined ${
+            type === 'error'   ? 'text-red-500'  :
+            type === 'warning' ? 'text-amber-400' : 'text-primary'}`;
+        t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all duration-300 pointer-events-auto opacity-100 translate-y-0';
+        setTimeout(() => {
+            t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none';
+        }, 4500);
+    }
+
+    function setLoading(btn, loading, origHTML = '') {
+        btn.disabled = loading;
+        if (loading) btn.innerHTML = '<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>';
+        else btn.innerHTML = origHTML;
+    }
+
+    function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        try {
+            return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-BO', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+        } catch { return dateStr; }
+    }
+</script>
+
+</body>
+</html>

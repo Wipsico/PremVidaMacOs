@@ -6,6 +6,7 @@
     <title>Prem Vida Admin – Clientes</title>
     <meta name="description" content="Base de compradores recurrentes y métricas de fidelización de Prem Vida."/>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <style>
@@ -81,18 +82,18 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="glass-card p-6 rounded-2xl space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-wider" style="color:#bbcabf">Clientes Totales</p>
-                <h3 id="kpi-total" class="text-3xl font-bold" style="color:#e5e1e4">128</h3>
-                <p class="text-xs" style="color:#4edea3">↑ +14 este mes</p>
+                <h3 id="kpi-total" class="text-3xl font-bold" style="color:#e5e1e4">—</h3>
+                <p id="kpi-total-sub" class="text-xs" style="color:#4edea3">Cargando...</p>
             </div>
             <div class="glass-card p-6 rounded-2xl space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-wider" style="color:#bbcabf">Clientes Activos</p>
-                <h3 id="kpi-active" class="text-3xl font-bold" style="color:#4edea3">94</h3>
-                <p class="text-xs" style="color:#bbcabf">Con compras en últimos 30 días</p>
+                <h3 id="kpi-active" class="text-3xl font-bold" style="color:#4edea3">—</h3>
+                <p id="kpi-active-sub" class="text-xs" style="color:#bbcabf">Cargando...</p>
             </div>
             <div class="glass-card p-6 rounded-2xl space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-wider" style="color:#bbcabf">Ticket Promedio</p>
-                <h3 id="kpi-avg" class="text-3xl font-bold" style="color:#e5e1e4">Bs. 342.80</h3>
-                <p class="text-xs" style="color:#bbcabf">Por pedido confirmado</p>
+                <h3 id="kpi-avg" class="text-3xl font-bold" style="color:#e5e1e4">Bs. —</h3>
+                <p id="kpi-avg-sub" class="text-xs" style="color:#bbcabf">Cargando...</p>
             </div>
         </div>
 
@@ -100,7 +101,7 @@
         <section class="glass-card rounded-2xl overflow-hidden">
             <div class="p-6 flex justify-between items-center border-b border-white/10">
                 <h4 class="font-bold text-base" style="color:#e5e1e4">Compradores Recurrentes</h4>
-                <span class="text-xs px-3 py-1 rounded-full font-bold uppercase" style="background:rgba(78,222,163,0.1);color:#4edea3">Datos demostrativos</span>
+                <span class="text-xs px-3 py-1 rounded-full font-bold uppercase" style="background:rgba(78,222,163,0.1);color:#4edea3">⚡ Tiempo Real</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse" id="customers-table">
@@ -127,27 +128,45 @@
     </div>
 </main>
 
-<script>
-// Auth guard
-if (localStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'login.html'; }
+<script type="module" src="js/core/shared.js"></script>
+<script type="module">
+import { fetchCustomers } from './js/core/logic.js';
 
-// ── Mock customers dataset ───────────────────────────────────────────────────
-const MOCK_CUSTOMERS = [
-    { name:'María González',    email:'maria.g@email.com',  total:2840.50, orders:9,  active:true,  lastBuy:'08 Jul 2026' },
-    { name:'Andrés Blanco',     email:'andrés.b@email.com', total:1920.00, orders:6,  active:true,  lastBuy:'07 Jul 2026' },
-    { name:'Laura Rodríguez',   email:'laura.r@email.com',  total:4320.75, orders:14, active:true,  lastBuy:'06 Jul 2026' },
-    { name:'Carlos Mendoza',    email:'c.mendoza@email.com',total:780.30,  orders:3,  active:false, lastBuy:'10 Jun 2026' },
-    { name:'Sofía Pérez',       email:'sofia.p@email.com',  total:5100.00, orders:17, active:true,  lastBuy:'08 Jul 2026' },
-    { name:'Miguel Vargas',     email:'m.vargas@email.com', total:1240.60, orders:5,  active:true,  lastBuy:'05 Jul 2026' },
-    { name:'Elena Torres',      email:'elena.t@email.com',  total:340.00,  orders:1,  active:false, lastBuy:'15 May 2026' },
-    { name:'Javier Morales',    email:'j.morales@email.com',total:2680.90, orders:11, active:true,  lastBuy:'07 Jul 2026' },
-    { name:'Valentina Cruz',    email:'v.cruz@email.com',   total:890.40,  orders:4,  active:true,  lastBuy:'04 Jul 2026' },
-    { name:'Ricardo Castillo',  email:'r.castillo@email.com',total:3210.00,orders:8,  active:true,  lastBuy:'06 Jul 2026' },
-    { name:'Camila Díaz',       email:'c.diaz@email.com',   total:1560.20, orders:7,  active:false, lastBuy:'01 Jun 2026' },
-    { name:'Pablo Hernández',   email:'p.hdez@email.com',   total:640.50,  orders:2,  active:true,  lastBuy:'03 Jul 2026' },
-];
+let allCustomers = [];
 
-let filteredCustomers = [...MOCK_CUSTOMERS];
+// Wait for shared.js to initialize Supabase
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initCustomers, 500);
+});
+
+async function initCustomers() {
+    if (!window.supabaseClient) {
+        console.error("Supabase client not initialized.");
+        return;
+    }
+    
+    try {
+        allCustomers = await fetchCustomers(window.supabaseClient);
+        
+        // Update KPIs
+        const total = allCustomers.length;
+        const active = allCustomers.filter(c => c.is_active).length;
+        const totalRevenue = allCustomers.reduce((acc, c) => acc + (parseFloat(c.total_spent) || 0), 0);
+        const totalOrders = allCustomers.reduce((acc, c) => acc + (parseInt(c.orders_count) || 0), 0);
+        const avgTicket = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+        
+        document.getElementById('kpi-total').innerText = total;
+        document.getElementById('kpi-total-sub').innerText = `Clientes registrados en total`;
+        document.getElementById('kpi-active').innerText = active;
+        document.getElementById('kpi-active-sub').innerText = `Con compras recurrentes activas`;
+        document.getElementById('kpi-avg').innerText = `Bs. ${avgTicket.toFixed(2)}`;
+        document.getElementById('kpi-avg-sub').innerText = `Por compra promedio de cliente`;
+        
+        renderTable(allCustomers);
+    } catch (err) {
+        console.error("Error fetching customers data:", err);
+    }
+}
 
 function renderTable(data) {
     const tbody = document.getElementById('customers-tbody');
@@ -156,27 +175,29 @@ function renderTable(data) {
         return;
     }
     tbody.innerHTML = data.map(c => {
-        const initials = c.name.split(' ').slice(0,2).map(w=>w[0]).join('');
-        const hue = Math.abs(c.name.charCodeAt(0) * 7) % 360;
+        const name = c.name || 'Desconocido';
+        const initials = name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const hue = Math.abs(name.charCodeAt(0) * 7) % 360;
+        const lastBuy = c.last_purchase_date ? new Date(c.last_purchase_date).toLocaleDateString('es-VE') : 'N/A';
         return `
             <tr class="transition-colors cursor-default">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
                              style="background:hsl(${hue},40%,25%);color:hsl(${hue},80%,75%)">${initials}</div>
-                        <span class="text-sm font-semibold" style="color:#e5e1e4">${c.name}</span>
+                        <span class="text-sm font-semibold" style="color:#e5e1e4">${name}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-sm" style="color:#bbcabf">${c.email}</td>
-                <td class="px-6 py-4 text-right font-semibold text-sm" style="color:#e5e1e4">Bs. ${c.total.toLocaleString('es-VE',{minimumFractionDigits:2})}</td>
-                <td class="px-6 py-4 text-center text-sm" style="color:#bbcabf">${c.orders}</td>
+                <td class="px-6 py-4 text-sm" style="color:#bbcabf">${c.email || ''}</td>
+                <td class="px-6 py-4 text-right font-semibold text-sm" style="color:#e5e1e4">Bs. ${(parseFloat(c.total_spent)||0).toLocaleString('es-VE',{minimumFractionDigits:2})}</td>
+                <td class="px-6 py-4 text-center text-sm" style="color:#bbcabf">${c.orders_count || 0}</td>
                 <td class="px-6 py-4 text-center">
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase"
-                          style="background:${c.active?'rgba(78,222,163,0.12)':'rgba(255,255,255,0.06)'};color:${c.active?'#4edea3':'#bbcabf'}">
-                        ${c.active ? 'Activo' : 'Inactivo'}
+                          style="background:${c.is_active?'rgba(78,222,163,0.12)':'rgba(255,255,255,0.06)'};color:${c.is_active?'#4edea3':'#bbcabf'}">
+                        ${c.is_active ? 'Activo' : 'Inactivo'}
                     </span>
                 </td>
-                <td class="px-6 py-4 text-center text-xs" style="color:#bbcabf">${c.lastBuy}</td>
+                <td class="px-6 py-4 text-center text-xs" style="color:#bbcabf">${lastBuy}</td>
             </tr>`;
     }).join('');
 }
@@ -184,14 +205,12 @@ function renderTable(data) {
 // Search
 document.getElementById('search-customers').addEventListener('input', e => {
     const q = e.target.value.toLowerCase().trim();
-    filteredCustomers = MOCK_CUSTOMERS.filter(c =>
-        c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    const filtered = allCustomers.filter(c =>
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.email && c.email.toLowerCase().includes(q))
     );
-    renderTable(filteredCustomers);
+    renderTable(filtered);
 });
-
-// Init
-document.addEventListener('DOMContentLoaded', () => renderTable(MOCK_CUSTOMERS));
 </script>
 </body>
 </html>

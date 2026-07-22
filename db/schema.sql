@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
     image_url TEXT,
     category TEXT, -- Added for classification (e.g., Dairy-Free, Confectionery, Beverage)
+    expiry_date DATE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -160,6 +161,23 @@ CREATE TABLE IF NOT EXISTS public.sale_items (
 
 ALTER TABLE public.sale_items ENABLE ROW LEVEL SECURITY;
 
+-----------------------------------------
+-- 11. CUSTOMERS (Loyalty & CRM)
+-----------------------------------------
+CREATE TABLE IF NOT EXISTS public.customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    total_spent NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    orders_count INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_purchase_date DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+
 
 -------------------------------------------------------------------------------
 -- AUTOMATION: UPDATED_AT TRIGGER FUNCTION
@@ -182,6 +200,7 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.expenses FOR EACH ROW EXEC
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.employees FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.payroll FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.sales FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 
 -------------------------------------------------------------------------------
@@ -330,3 +349,10 @@ CREATE POLICY "Users can view and manage sale items for accessible sales" ON pub
               AND (operator_id = auth.uid() OR public.get_current_user_role() = 'admin')
         )
     );
+
+-- 11. Customers Policies
+CREATE POLICY "Admins and Operators can view customers" ON public.customers
+    FOR SELECT USING (public.get_current_user_role() IN ('admin', 'operator'));
+
+CREATE POLICY "Admins can manage customers" ON public.customers
+    FOR ALL USING (public.get_current_user_role() = 'admin');

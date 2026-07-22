@@ -76,12 +76,12 @@
                     </div>
                 </div>
 
-                <!-- Bypass Note (Academic / Evaluation) -->
+                <!-- Admin access note -->
                 <div class="bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-on-surface-variant flex items-start gap-2.5">
-                    <span class="material-symbols-outlined text-primary text-base mt-0.5">info</span>
+                    <span class="material-symbols-outlined text-primary text-base mt-0.5">admin_panel_settings</span>
                     <div>
-                        <p class="font-medium text-on-surface">Acceso de Evaluación Académica</p>
-                        <p class="opacity-85 mt-0.5">Use <strong>admin@premvida.com</strong> / <strong>PremVida2026!</strong> para el bypass de evaluación de la facultad.</p>
+                        <p class="font-medium text-on-surface">Acceso administrativo protegido</p>
+                        <p class="opacity-85 mt-0.5">Solo usuarios creados o aprobados por un administrador pueden entrar a la suite.</p>
                     </div>
                 </div>
 
@@ -114,19 +114,49 @@
         <p id="toast-message" class="text-sm font-medium text-on-surface"></p>
     </div>
 
-    <script>
-        // Check if already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = 'dashboard.html';
-        }
+    <div id="mfa-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+        <div class="glass-card w-full max-w-sm rounded-3xl p-7 space-y-5">
+            <div class="space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">shield_lock</span>
+                </div>
+                <h3 class="text-lg font-bold text-on-surface">Verificación 2FA</h3>
+                <p class="text-xs text-on-surface-variant leading-relaxed">Ingresa el código temporal de tu app autenticadora para completar el acceso administrativo.</p>
+            </div>
+            <input id="mfa-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                   class="w-full input-recessed rounded-xl px-4 py-3 focus:outline-none text-center text-xl tracking-[0.35em] text-on-surface"
+                   placeholder="000000" type="text"/>
+            <div class="flex gap-3">
+                <button id="mfa-cancel" class="flex-1 py-3 rounded-xl border border-white/10 font-semibold text-sm hover:bg-white/5 transition-colors">Cancelar</button>
+                <button id="mfa-verify" class="flex-1 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm">Verificar</button>
+            </div>
+        </div>
+    </div>
 
-        // Initialize Supabase Client if configured
+    <script>
+        const FALLBACK_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
+        const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
+
+        if (!localStorage.getItem('supabaseUrl')) localStorage.setItem('supabaseUrl', FALLBACK_URL);
+        if (!localStorage.getItem('supabaseKey')) localStorage.setItem('supabaseKey', FALLBACK_KEY);
+
         let supabaseClient = null;
+        let pendingMfa = null;
         const supabaseUrl = localStorage.getItem('supabaseUrl');
         const supabaseKey = localStorage.getItem('supabaseKey');
         if (supabaseUrl && supabaseKey && typeof supabase !== 'undefined') {
-            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+                auth: { persistSession: true, autoRefreshToken: true }
+            });
         }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!supabaseClient) return;
+            const { data } = await supabaseClient.auth.getSession();
+            if (!data?.session) return;
+            const profile = await fetchApprovedProfile(data.session.user.id);
+            if (profile) window.location.href = 'dashboard.html';
+        });
 
         // Form Submit Handler
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -139,18 +169,6 @@
             btn.disabled = true;
             btn.innerHTML = `<div class="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div><span>Verificando...</span>`;
 
-            // 1. Check bypass credentials
-            if (email === 'admin@premvida.com' && password === 'PremVida2026!') {
-                showToast('check_circle', 'Acceso de evaluación concedido. Redirigiendo...', 'success');
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userRole', 'admin');
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
-                return;
-            }
-
-            // 2. Real Auth with Supabase if client is initialized
             if (supabaseClient) {
                 try {
                     const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -159,10 +177,22 @@
                     });
 
                     if (error) throw error;
+                    const profile = await fetchApprovedProfile(data.user.id);
+                    if (!profile) {
+                        await supabaseClient.auth.signOut();
+                        throw new Error('Tu usuario aun no tiene perfil administrativo aprobado.');
+                    }
 
                     showToast('check_circle', 'Inicio de sesión exitoso.', 'success');
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('userRole', 'operator'); // default role from auth if not admin bypass
+                    localStorage.setItem('userRole', profile.role);
+                    localStorage.setItem('userName', profile.name || email);
+                    localStorage.removeItem('isLoggedIn');
+                    const mfaPassed = await requireMfaIfEnabled();
+                    if (!mfaPassed) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        return;
+                    }
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1000);
@@ -176,6 +206,90 @@
                 showToast('error', 'Credenciales incorrectas o Supabase sin configurar.', 'error');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        });
+
+        async function fetchApprovedProfile(userId) {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('id, name, role')
+                .eq('id', userId)
+                .in('role', ['admin', 'operator'])
+                .single();
+
+            if (error || !data) return null;
+            return data;
+        }
+
+        async function requireMfaIfEnabled() {
+            if (!supabaseClient?.auth?.mfa) return true;
+
+            try {
+                const { data, error } = await supabaseClient.auth.mfa.listFactors();
+                if (error) throw error;
+                const verifiedFactor = data?.totp?.find((factor) => factor.status === 'verified');
+                if (!verifiedFactor) return true;
+
+                const { data: challengeData, error: challengeError } = await supabaseClient.auth.mfa.challenge({
+                    factorId: verifiedFactor.id,
+                });
+                if (challengeError) throw challengeError;
+
+                pendingMfa = {
+                    factorId: verifiedFactor.id,
+                    challengeId: challengeData.id,
+                };
+                openMfaModal();
+                return false;
+            } catch (error) {
+                console.warn('[login] MFA no disponible o falló la detección:', error);
+                return true;
+            }
+        }
+
+        function openMfaModal() {
+            const modal = document.getElementById('mfa-modal');
+            const input = document.getElementById('mfa-code');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            input.value = '';
+            setTimeout(() => input.focus(), 50);
+        }
+
+        async function closeMfaModal(signOut = false) {
+            const modal = document.getElementById('mfa-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingMfa = null;
+            if (signOut && supabaseClient) await supabaseClient.auth.signOut();
+        }
+
+        document.getElementById('mfa-cancel').addEventListener('click', async () => {
+            await closeMfaModal(true);
+            showToast('warning', 'Verificación 2FA cancelada.', 'warning');
+        });
+
+        document.getElementById('mfa-verify').addEventListener('click', async () => {
+            const code = document.getElementById('mfa-code').value.trim();
+            if (!pendingMfa || code.length < 6) {
+                showToast('warning', 'Ingresa el código de 6 dígitos.', 'warning');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient.auth.mfa.verify({
+                    factorId: pendingMfa.factorId,
+                    challengeId: pendingMfa.challengeId,
+                    code,
+                });
+                if (error) throw error;
+                await closeMfaModal(false);
+                showToast('check_circle', '2FA verificado. Redirigiendo...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 700);
+            } catch (error) {
+                showToast('error', `Código 2FA inválido: ${error.message}`, 'error');
             }
         });
 

@@ -6,6 +6,7 @@
     <title>Prem Vida Admin – Analytics</title>
     <meta name="description" content="Panel de analíticas de inventario, degradación por vencimiento y rotación de stock de Prem Vida."/>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <style>
@@ -67,8 +68,8 @@
             <span class="text-xs uppercase tracking-widest" style="color:#bbcabf">Rotación · Degradación · Stock</span>
         </div>
         <div class="flex items-center gap-4">
-            <span class="text-xs px-3 py-1.5 rounded-full font-semibold" style="background:rgba(245,158,11,0.12);color:#ffb95f">
-                ⚠ Datos simulados para evaluación
+            <span class="text-xs px-3 py-1.5 rounded-full font-semibold" style="background:rgba(78,222,163,0.12);color:#4edea3">
+                ⚡ En Vivo
             </span>
             <div class="w-10 h-10 rounded-full overflow-hidden border border-white/20">
                 <img class="w-full h-full object-cover" alt="Admin" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=80&auto=format&fit=crop"/>
@@ -82,22 +83,22 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
             <div class="glass-card p-5 rounded-2xl space-y-2">
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">SKUs Activos</p>
-                <p class="text-2xl font-bold" style="color:#e5e1e4">47</p>
-                <p class="text-[11px]" style="color:#4edea3">+3 nuevos este mes</p>
+                <p id="kpi-skus" class="text-2xl font-bold" style="color:#e5e1e4">—</p>
+                <p id="kpi-skus-sub" class="text-[11px]" style="color:#4edea3">Cargando...</p>
             </div>
             <div class="glass-card p-5 rounded-2xl space-y-2">
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Rotación Promedio</p>
-                <p class="text-2xl font-bold" style="color:#e5e1e4">18 días</p>
-                <p class="text-[11px]" style="color:#4edea3">↓ 2 días vs. mes anterior</p>
+                <p id="kpi-rotacion" class="text-2xl font-bold" style="color:#e5e1e4">—</p>
+                <p id="kpi-rotacion-sub" class="text-[11px]" style="color:#4edea3">Cargando...</p>
             </div>
             <div class="glass-card p-5 rounded-2xl space-y-2">
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Pérdida Estimada</p>
-                <p class="text-2xl font-bold" style="color:#ef4444">Bs. 2.840</p>
+                <p id="kpi-perdida" class="text-2xl font-bold" style="color:#ef4444">Bs. —</p>
                 <p class="text-[11px]" style="color:#bbcabf">Por vencimiento proyectado</p>
             </div>
             <div class="glass-card p-5 rounded-2xl space-y-2">
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Merma del Mes</p>
-                <p class="text-2xl font-bold" style="color:#ffb95f">4.2%</p>
+                <p id="kpi-merma" class="text-2xl font-bold" style="color:#ffb95f">— %</p>
                 <p class="text-[11px]" style="color:#bbcabf">Del valor de almacén</p>
             </div>
         </div>
@@ -141,46 +142,86 @@
     </div>
 </main>
 
-<script>
-// Auth guard
-if (localStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'login.html'; }
+<script type="module" src="js/core/shared.js"></script>
+<script type="module">
+import { fetchProducts } from './js/core/logic.js';
 
-// ── Mock Datasets ────────────────────────────────────────────────────────────
+// Wait for shared.js to initialize Supabase
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initAnalytics, 500);
+});
 
-const TOP_PRODUCTS = [
-    { name:'Leche de Almendras 1L',          sold:142, max:200, category:'Dairy-Free', color:'#4edea3' },
-    { name:'Queso Cheddar Vegano 200g',       sold:98,  max:200, category:'Dairy-Free', color:'#4edea3' },
-    { name:'Hamburguesa de Lentejas (4u)',    sold:87,  max:200, category:'Vegan Meat', color:'#ef4444' },
-    { name:'Granola Vegana 500g',             sold:76,  max:200, category:'Bakery',     color:'#f59e0b' },
-    { name:'Jugo Verde Detox 500ml',          sold:64,  max:200, category:'Beverage',   color:'#60a5fa' },
-    { name:'Chocolate 70% Cacao 100g',        sold:53,  max:200, category:'Confectionery', color:'#ffb95f' },
-    { name:'Proteína de Chía (Polvo) 300g',  sold:41,  max:200, category:'Vegan Meat', color:'#ef4444' },
-];
+async function initAnalytics() {
+    if (!window.supabaseClient) {
+        console.error("Supabase client not initialized.");
+        return;
+    }
 
-const EXPIRY_ALERTS = [
-    { name:'Leche de Avena 1L',        daysLeft:3,  stock:18, lossEst:540.00,   urgency:'critical' },
-    { name:'Yogur de Coco 200g',        daysLeft:5,  stock:24, lossEst:720.00,   urgency:'critical' },
-    { name:'Crema de Cacahuate 250g',   daysLeft:8,  stock:11, lossEst:341.00,   urgency:'high'     },
-    { name:'Smoothie Tropical 330ml',   daysLeft:12, stock:30, lossEst:450.00,   urgency:'medium'   },
-    { name:'Pan de Masa Madre 400g',    daysLeft:14, stock:8,  lossEst:176.00,   urgency:'medium'   },
-    { name:'Tofu Firme 400g',           daysLeft:21, stock:45, lossEst:405.00,   urgency:'low'      },
-];
+    try {
+        const products = await fetchProducts(window.supabaseClient);
+        
+        // ── KPIs reales ──────────────────────────────────────────
+        const activeProducts = products.filter(p => p.is_active);
+        const totalValuation = products.reduce((acc, p) => acc + (parseFloat(p.price || 0) * (parseInt(p.stock || 0))), 0);
 
-const CATEGORIES = [
-    { name:'Dairy-Free',     count:14, pct:30, color:'#4edea3' },
-    { name:'Vegan Meat',     count:9,  pct:19, color:'#ef4444' },
-    { name:'Beverage',       count:8,  pct:17, color:'#60a5fa' },
-    { name:'Bakery',         count:7,  pct:15, color:'#f59e0b' },
-    { name:'Confectionery',  count:5,  pct:11, color:'#ffb95f' },
-    { name:'Other',          count:4,  pct:8,  color:'#bbcabf' },
-];
+        // SKUs Activos
+        const kpiSkus = document.getElementById('kpi-skus');
+        const kpiSkusSub = document.getElementById('kpi-skus-sub');
+        if (kpiSkus) kpiSkus.textContent = activeProducts.length;
+        if (kpiSkusSub) kpiSkusSub.textContent = `${products.length} SKUs totales en catálogo`;
 
-// ── Render functions ─────────────────────────────────────────────────────────
+        // Pérdida estimada por vencimiento (productos con expiry_date < hoy)
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const expiringSoon = products.filter(p => p.expiry_date);
+        const lossEstimated = expiringSoon
+            .filter(p => {
+                const d = new Date(p.expiry_date + 'T00:00:00');
+                return d <= new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000);
+            })
+            .reduce((acc, p) => acc + ((parseFloat(p.price) || 0) * (parseInt(p.stock) || 0)), 0);
+        const kpiPerdida = document.getElementById('kpi-perdida');
+        if (kpiPerdida) kpiPerdida.textContent = `Bs. ${lossEstimated.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
-function renderRotation() {
+        // Merma estimada (% de valor en riesgo vs. valuación total)
+        const merma = totalValuation > 0 ? (lossEstimated / totalValuation) * 100 : 0;
+        const kpiMerma = document.getElementById('kpi-merma');
+        if (kpiMerma) kpiMerma.textContent = `${merma.toFixed(1)} %`;
+
+        // Rotación promedio estimada (proxy: stock promedio / 10)
+        const avgStock = activeProducts.length > 0
+            ? activeProducts.reduce((acc, p) => acc + (parseInt(p.stock) || 0), 0) / activeProducts.length
+            : 0;
+        const rotacion = Math.max(1, Math.round(avgStock / 10));
+        const kpiRot = document.getElementById('kpi-rotacion');
+        const kpiRotSub = document.getElementById('kpi-rotacion-sub');
+        if (kpiRot) kpiRot.textContent = `${rotacion} días`;
+        if (kpiRotSub) kpiRotSub.textContent = 'Estimado por stock promedio';
+
+        // ── Renderizar listas ────────────────────────────────────
+        renderRotation(products);
+        renderExpiry(products);
+        renderCategories(products);
+    } catch (err) {
+        console.error("Error fetching analytics data:", err);
+    }
+}
+
+function renderRotation(products) {
     const el = document.getElementById('rotation-list');
-    el.innerHTML = TOP_PRODUCTS.map((p, i) => {
-        const pct = Math.round((p.sold / p.max) * 100);
+    
+    // Sort by lowest stock as a proxy for highest rotation (assuming max stock was 200)
+    const sorted = [...products].sort((a, b) => a.stock - b.stock).slice(0, 7);
+    
+    if(sorted.length === 0) {
+        el.innerHTML = '<p class="text-sm text-on-surface-variant">No hay datos suficientes.</p>';
+        return;
+    }
+
+    el.innerHTML = sorted.map((p, i) => {
+        const sold = Math.max(0, 200 - (p.stock || 0));
+        const pct = Math.min(100, Math.round((sold / 200) * 100));
+        const color = '#4edea3';
         return `
             <div class="space-y-1.5">
                 <div class="flex justify-between items-center">
@@ -188,16 +229,16 @@ function renderRotation() {
                         <span class="text-xs font-bold w-4 shrink-0" style="color:#bbcabf">#${i+1}</span>
                         <span class="text-sm font-medium truncate" style="color:#e5e1e4">${p.name}</span>
                     </div>
-                    <span class="text-xs font-bold shrink-0 ml-3" style="color:${p.color}">${p.sold} u.</span>
+                    <span class="text-xs font-bold shrink-0 ml-3" style="color:${color}">${sold} u. vendidas (est.)</span>
                 </div>
                 <div class="bar-container">
-                    <div class="bar-fill" style="width:${pct}%;background:${p.color}"></div>
+                    <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
                 </div>
             </div>`;
     }).join('');
 }
 
-function renderExpiry() {
+function renderExpiry(products) {
     const el = document.getElementById('expiry-list');
     const urgencyConfig = {
         critical: { bg:'rgba(239,68,68,0.12)', text:'#ef4444', label:'Crítico',  icon:'emergency' },
@@ -205,7 +246,26 @@ function renderExpiry() {
         medium:   { bg:'rgba(96,165,250,0.10)', text:'#60a5fa', label:'Medio',   icon:'info'      },
         low:      { bg:'rgba(78,222,163,0.10)', text:'#4edea3', label:'Bajo',    icon:'check_circle'},
     };
-    el.innerHTML = EXPIRY_ALERTS.map(a => {
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const expiring = products.filter(p => p.expiry_date).map(p => {
+        const expDate = new Date(p.expiry_date + 'T00:00:00');
+        const daysLeft = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        const lossEst = (parseFloat(p.price) || 0) * (parseInt(p.stock) || 0);
+        let urgency = 'low';
+        if(daysLeft <= 5) urgency = 'critical';
+        else if(daysLeft <= 10) urgency = 'high';
+        else if(daysLeft <= 20) urgency = 'medium';
+        return { ...p, daysLeft, lossEst, urgency };
+    }).sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 6);
+
+    if(expiring.length === 0) {
+        el.innerHTML = '<p class="text-sm text-on-surface-variant">No hay productos próximos a vencer.</p>';
+        return;
+    }
+
+    el.innerHTML = expiring.map(a => {
         const cfg = urgencyConfig[a.urgency];
         return `
             <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors"
@@ -226,27 +286,35 @@ function renderExpiry() {
     }).join('');
 }
 
-function renderCategories() {
+function renderCategories(products) {
     const el = document.getElementById('category-bars');
-    el.innerHTML = CATEGORIES.map(c => `
+    const catCounts = {};
+    products.forEach(p => {
+        const cat = p.category || 'Other';
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+    });
+    
+    const total = products.length || 1;
+    const colors = ['#4edea3', '#ef4444', '#60a5fa', '#f59e0b', '#ffb95f', '#bbcabf'];
+    
+    const categories = Object.keys(catCounts).map((key, i) => ({
+        name: key,
+        count: catCounts[key],
+        pct: Math.round((catCounts[key] / total) * 100),
+        color: colors[i % colors.length]
+    })).sort((a,b) => b.count - a.count);
+
+    el.innerHTML = categories.map(c => `
         <div class="space-y-2">
             <div class="flex justify-between text-sm">
                 <span class="font-medium" style="color:#e5e1e4">${c.name}</span>
                 <span class="font-bold" style="color:${c.color}">${c.count} SKUs · ${c.pct}%</span>
             </div>
             <div class="bar-container">
-                <div class="bar-fill" style="width:${c.pct}%;background:${c.color}"></div>
+                <div class="bar-fill" style="width:${c.pct}%;background:${c.color};transition:width 0.8s ease;"></div>
             </div>
         </div>`).join('');
 }
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    renderRotation();
-    renderExpiry();
-    // Delay category bars to animate on load
-    setTimeout(renderCategories, 150);
-});
 </script>
 </body>
 </html>

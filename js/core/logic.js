@@ -325,6 +325,27 @@ function escapeHtml(str) {
 }
 
 /**
+ * Obtiene todos los clientes de la tabla 'customers' de Supabase ordenados por nombre.
+ * 
+ * @param {Object} supabase - Instancia del cliente de Supabase.
+ * @returns {Promise<Array<Object>>} Lista de clientes.
+ */
+export async function fetchCustomers(supabase) {
+  if (!supabase) {
+    throw new Error('Supabase client instance is required.');
+  }
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw new Error(`Error fetching customers: ${error.message}`);
+  }
+  return data || [];
+}
+
+/**
  * Obtiene todos los productos de la tabla 'products' de Supabase ordenados por fecha de creación descendente.
  * 
  * @param {Object} supabase - Instancia del cliente de Supabase.
@@ -568,7 +589,7 @@ export async function processXeroInventoryCSV(supabase, csvText) {
     
     // Limpieza y parseo numérico de precios y stocks (elimina símbolos de moneda, comas, etc.)
     const rawPrice = priceIdx !== -1 ? row[priceIdx] : '0';
-    const price = parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0;
+    const price = Math.round((parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0) * 100) / 100;
     
     const rawStock = stockIdx !== -1 ? row[stockIdx] : '0';
     const stock = parseInt(rawStock.replace(/[^0-9-]/g, '')) || 0;

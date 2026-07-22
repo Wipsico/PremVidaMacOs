@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/core/shared.js" defer></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -137,9 +138,9 @@
                 <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">database</span>
                 <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden" id="db-status-dot"></span>
             </button>
-            <button class="relative p-2 rounded-full hover:bg-white/5 transition-colors">
-                <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
-                <span class="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+            <button id="btn-notifications" class="relative p-2 rounded-full hover:bg-white/5 transition-colors group" title="Alertas de Merma / Vencimiento">
+                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-amber-400 transition-colors">notifications</span>
+                <span class="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
             </button>
             <!-- Avatar con dropdown -->
             <div class="relative">
@@ -272,19 +273,53 @@
             </div>
         </div>
 
+        <!-- ══ SUGERENCIAS DE VENTA (PRIORIDAD ALTA) ══════════════════════ -->
+        <div class="glass-card p-6 rounded-2xl space-y-4" id="panel-sugerencias">
+            <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                <div>
+                    <h4 class="font-bold text-base flex items-center gap-2" style="color:#e5e1e4">
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings:'FILL' 1">sell</span>
+                        💡 Sugerencias de Venta
+                        <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400">Prioridad Alta</span>
+                    </h4>
+                    <p class="text-xs mt-1" style="color:#bbcabf">Productos próximos a vencer · Ordenados cronológicamente · Solo Admin</p>
+                </div>
+                <a href="code.html" class="text-xs font-semibold hover:underline" style="color:#4edea3">Gestionar →</a>
+            </div>
+            <!-- Tabla de sugerencias —— renderizada por loadSalesSuggestions() -->
+            <div id="sugerencias-list" class="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                <div class="flex items-center justify-center h-16">
+                    <div class="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+            <!-- Leyenda de colores -->
+            <div class="flex items-center gap-4 pt-1 border-t border-white/5 flex-wrap">
+                <span class="flex items-center gap-1.5 text-[10px]" style="color:#bbcabf">
+                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Vencido
+                </span>
+                <span class="flex items-center gap-1.5 text-[10px]" style="color:#bbcabf">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> ≤ 7 días
+                </span>
+                <span class="flex items-center gap-1.5 text-[10px]" style="color:#bbcabf">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span> ≤ 30 días
+                </span>
+                <span class="ml-auto text-[10px] font-semibold" style="color:#4edea3">Precio remate = precio × 0.70</span>
+            </div>
+        </div>
+
         <!-- QUICK ACTIONS ROW -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button id="btn-open-venta" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer border border-transparent group w-full">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-blue-400 transition-colors" style="font-variation-settings:'FILL' 1">point_of_sale</span>
+                <span class="text-xs font-semibold text-on-surface-variant group-hover:text-blue-400 text-center">Registrar Venta</span>
+            </button>
+            <button id="btn-open-gasto" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-secondary/30 hover:bg-secondary/5 transition-all cursor-pointer border border-transparent group w-full">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-secondary transition-colors" style="font-variation-settings:'FILL' 1">receipt_long</span>
+                <span class="text-xs font-semibold text-on-surface-variant group-hover:text-secondary text-center">Añadir Gasto</span>
+            </button>
             <a href="code.html" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer border border-transparent group">
                 <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-primary transition-colors" style="font-variation-settings:'FILL' 1">inventory_2</span>
                 <span class="text-xs font-semibold text-on-surface-variant group-hover:text-primary text-center">Gestionar Inventario</span>
-            </a>
-            <a href="orders.html" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer border border-transparent group">
-                <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-blue-400 transition-colors" style="font-variation-settings:'FILL' 1">shopping_cart</span>
-                <span class="text-xs font-semibold text-on-surface-variant group-hover:text-blue-400 text-center">Ver Pedidos</span>
-            </a>
-            <a href="analytics.html" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-secondary/30 hover:bg-secondary/5 transition-all cursor-pointer border border-transparent group">
-                <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-secondary transition-colors" style="font-variation-settings:'FILL' 1">monitoring</span>
-                <span class="text-xs font-semibold text-on-surface-variant group-hover:text-secondary text-center">Ver Analytics</span>
             </a>
             <a href="settings.html" class="glass-card rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer border border-transparent group">
                 <span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-on-surface transition-colors" style="font-variation-settings:'FILL' 1">settings</span>
@@ -307,18 +342,14 @@
     import { fetchDashboardStats, renderSalesChart } from './js/core/dashboard-logic.js';
 
     // ── Auth guard ──────────────────────────────────────────────────
-    if (localStorage.getItem('isLoggedIn') !== 'true') {
-        window.location.href = 'login.html';
-    }
-
     // ── Supabase init ────────────────────────────────────────────────
-    const SUPABASE_URL = localStorage.getItem('SUPABASE_URL');
-    const SUPABASE_KEY = localStorage.getItem('SUPABASE_ANON_KEY');
+    const supabaseUrl = localStorage.getItem('supabaseUrl');
+    const supabaseKey = localStorage.getItem('supabaseKey');
     let sbClient = null;
 
-    if (SUPABASE_URL && SUPABASE_KEY && typeof window.supabase !== 'undefined') {
+    if (supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
         try {
-            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            sbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         } catch (e) {
             console.warn('Supabase init error:', e);
         }
@@ -331,26 +362,106 @@
 
         document.getElementById('btn-refresh').addEventListener('click', loadDashboard);
         document.getElementById('btn-logout').addEventListener('click', () => {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = 'login.html';
+            if (window.premVidaLogout) window.premVidaLogout();
+            else window.location.href = 'login.html';
         });
     });
 
     // ── Load all dashboard data ──────────────────────────────────────
     async function loadDashboard() {
-        try {
-            const stats = await fetchDashboardStats(sbClient);
+        // Las dos cargas son paralelas e independientes para no bloquear la UI
+        const [statsResult] = await Promise.allSettled([
+            fetchDashboardStats(sbClient)
+        ]);
+
+        if (statsResult.status === 'fulfilled') {
+            const stats = statsResult.value;
             renderStats(stats);
             renderCriticalList(stats.criticalProducts);
             renderSalesChart('sales-chart', 'chart-labels', stats.chartData);
-        } catch (err) {
+        } else {
+            const err = statsResult.reason;
             console.error('Dashboard load error:', err);
-            // Show anti-hibernation banner
             if (String(err).includes('fetch') || err instanceof TypeError) {
                 showHibernationBanner();
             }
-            showToast('warning', 'Mostrando datos simulados. Verifica la conexión.', 'warning');
+            showToast('warning', 'Verifica la conexión. El servidor podría estar en suspensión.', 'warning');
         }
+
+        // Panel de Sugerencias — llamada paralela, falla sin bloquear el resto
+        loadSalesSuggestions().catch(e => console.warn('Sugerencias no disponibles:', e));
+    }
+
+    // ── Sugerencias de Venta — Productos próximos a vencer ───────────
+    async function loadSalesSuggestions() {
+        const el = document.getElementById('sugerencias-list');
+        if (!el) return;
+
+        // Guard de rol: solo Admin (permisivo si el campo está vacío)
+        const role = localStorage.getItem('userRole');
+        if (role && role !== 'admin') {
+            el.innerHTML = `<p class="text-xs text-center py-6" style="color:#bbcabf">🔒 Sección exclusiva para administradores.</p>`;
+            return;
+        }
+
+        if (!sbClient) {
+            el.innerHTML = `<p class="text-xs text-center py-6" style="color:#bbcabf">Sin conexión a Supabase. Verifica las credenciales.</p>`;
+            return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await sbClient
+            .from('products')
+            .select('id, name, category, expiry_date, price, stock')
+            .not('expiry_date', 'is', null)
+            .order('expiry_date', { ascending: true })
+            .limit(8);
+
+        if (error) {
+            el.innerHTML = `<p class="text-xs text-center py-6 text-red-400">Error al cargar sugerencias: ${escHtml(error.message)}</p>`;
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            el.innerHTML = `<p class="text-xs text-center py-6" style="color:#bbcabf">✅ No hay productos con fecha de vencimiento registrada.</p>`;
+            return;
+        }
+
+        el.innerHTML = data.map(p => {
+            const precio  = Math.round((p.price || 0) * 100) / 100;
+            const remate  = Math.round(precio * 0.70 * 100) / 100;
+            const exp     = new Date(p.expiry_date);
+            const daysLeft = Math.ceil((exp - new Date()) / 86400000);
+
+            let badgeClass, badgeLabel;
+            if (daysLeft < 0) {
+                badgeClass = 'bg-red-500/20 text-red-400';
+                badgeLabel = `Vencido (${Math.abs(daysLeft)}d)`;
+            } else if (daysLeft <= 7) {
+                badgeClass = 'bg-amber-500/20 text-amber-300';
+                badgeLabel = `Vence en ${daysLeft}d`;
+            } else if (daysLeft <= 30) {
+                badgeClass = 'bg-blue-500/20 text-blue-300';
+                badgeLabel = `${daysLeft} días`;
+            } else {
+                badgeClass = 'bg-white/10 text-on-surface-variant';
+                badgeLabel = `${daysLeft} días`;
+            }
+
+            return `
+                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors border border-white/5">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-semibold truncate" style="color:#e5e1e4">${escHtml(p.name)}</p>
+                        <p class="text-[10px]" style="color:#bbcabf">${escHtml(p.category || 'Sin categoría')} · Stock: ${p.stock}</p>
+                    </div>
+                    <div class="text-right shrink-0 space-y-1">
+                        <span class="block px-2 py-0.5 rounded-lg text-[10px] font-bold ${badgeClass}">${badgeLabel}</span>
+                        <span class="block text-[10px] font-bold" style="color:#4edea3">Bs. ${remate.toFixed(2)} remate</span>
+                        <span class="block text-[10px]" style="color:#bbcabf">P.V.P Bs. ${precio.toFixed(2)}</span>
+                    </div>
+                </div>`;
+        }).join('');
     }
 
     // ── Render Bento stats ──────────────────────────────────────────
@@ -442,6 +553,275 @@
             t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none';
         }, 4000);
     }
+</script>
+
+<!-- ══ MODAL: REGISTRAR VENTA ════════════════════════════════════ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-venta">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="cerrarModalVenta()"></div>
+    <div style="background:rgba(19,19,21,0.92);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
+         class="w-full max-w-md rounded-3xl p-8 relative shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2" style="color:#e5e1e4">
+                <span class="material-symbols-outlined" style="color:#4edea3;font-variation-settings:'FILL' 1">point_of_sale</span>
+                Registrar Venta
+            </h3>
+            <button onclick="cerrarModalVenta()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <span class="material-symbols-outlined" style="color:#bbcabf">close</span>
+            </button>
+        </div>
+        <form id="form-venta" onsubmit="event.preventDefault();" class="space-y-4">
+            <!-- Monto -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Monto Total (Bs.)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:#bbcabf">Bs.</span>
+                    <input id="venta-monto" required min="0.01" step="0.01" type="number" placeholder="0.00"
+                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3"/>
+                </div>
+            </div>
+            <!-- Método de pago -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Método de Pago</label>
+                <select id="venta-metodo" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3">
+                    <option value="efectivo" class="bg-surface">Efectivo</option>
+                    <option value="transferencia" class="bg-surface">Transferencia</option>
+                    <option value="QR" class="bg-surface">QR / Código QR</option>
+                    <option value="tarjeta" class="bg-surface">Tarjeta</option>
+                </select>
+            </div>
+            <!-- Tipo de entrega -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Tipo de Entrega</label>
+                <select id="venta-entrega" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#4edea3">
+                    <option value="pickup" class="bg-surface">Pickup (Recogida en tienda)</option>
+                    <option value="delivery" class="bg-surface">Delivery (Entrega a domicilio)</option>
+                </select>
+            </div>
+            <!-- Código de orden (auto-generado) -->
+            <p class="text-[10px]" style="color:rgba(187,202,191,0.6)">
+                El código de orden se genera automáticamente. La venta se registra como <strong>Confirmada</strong>.
+            </p>
+            <!-- Acciones -->
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="cerrarModalVenta()"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+                        style="border:1px solid rgba(255,255,255,0.1);color:#e5e1e4">Cancelar</button>
+                <button type="submit" id="btn-submit-venta"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style="background:#4edea3;color:#003824;box-shadow:0 10px 30px rgba(78,222,163,0.25)">
+                    <span class="material-symbols-outlined text-base">check_circle</span>
+                    <span>Registrar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ MODAL: AÑADIR GASTO ════════════════════════════════════ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-gasto">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="cerrarModalGasto()"></div>
+    <div style="background:rgba(19,19,21,0.92);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
+         class="w-full max-w-md rounded-3xl p-8 relative shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2" style="color:#e5e1e4">
+                <span class="material-symbols-outlined" style="color:#ffb95f;font-variation-settings:'FILL' 1">receipt_long</span>
+                Añadir Gasto Operativo
+            </h3>
+            <button onclick="cerrarModalGasto()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <span class="material-symbols-outlined" style="color:#bbcabf">close</span>
+            </button>
+        </div>
+        <form id="form-gasto" onsubmit="event.preventDefault();" class="space-y-4">
+            <!-- Categoría -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Categoría</label>
+                <select id="gasto-categoria" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f">
+                    <option value="alquiler" class="bg-surface">Alquiler</option>
+                    <option value="agua" class="bg-surface">Agua</option>
+                    <option value="luz" class="bg-surface">Electricidad / Luz</option>
+                    <option value="otros" class="bg-surface">Otros</option>
+                </select>
+            </div>
+            <!-- Monto -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Monto (Bs.)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color:#bbcabf">Bs.</span>
+                    <input id="gasto-monto" required min="0.01" step="0.01" type="number" placeholder="0.00"
+                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2"
+                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f"/>
+                </div>
+            </div>
+            <!-- Fecha -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Fecha del Gasto</label>
+                <input id="gasto-fecha" required type="date"
+                       class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+                       style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f"/>
+            </div>
+            <!-- Acciones -->
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="cerrarModalGasto()"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+                        style="border:1px solid rgba(255,255,255,0.1);color:#e5e1e4">Cancelar</button>
+                <button type="submit" id="btn-submit-gasto"
+                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style="background:#ffb95f;color:#1a0f00;box-shadow:0 10px 30px rgba(255,185,95,0.25)">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Guardar Gasto</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ LÓGICA: MODALES DASHBOARD ══════════════════════════════ -->
+<script>
+// ── Helpers de modal ────────────────────────────────────────────
+function abrirModalVenta()  { document.getElementById('modal-venta').classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+function cerrarModalVenta() { document.getElementById('modal-venta').classList.add('hidden'); document.getElementById('form-venta').reset(); document.body.classList.remove('overflow-hidden'); }
+function abrirModalGasto()  { document.getElementById('modal-gasto').classList.remove('hidden'); document.getElementById('gasto-fecha').value = new Date().toISOString().split('T')[0]; document.body.classList.add('overflow-hidden'); }
+function cerrarModalGasto() { document.getElementById('modal-gasto').classList.add('hidden'); document.getElementById('form-gasto').reset(); document.body.classList.remove('overflow-hidden'); }
+
+// ── Toast helper local ─────────────────────────────────────────
+function dashToast(icon, msg, type) {
+    const t = document.getElementById('toast');
+    const i = document.getElementById('toast-icon');
+    const m = document.getElementById('toast-message');
+    if (!t || !i || !m) return;
+    i.textContent = icon; m.textContent = msg;
+    i.className = `material-symbols-outlined ${type === 'error' ? 'text-red-500' : type === 'warning' ? 'text-amber-500' : 'text-primary'}`;
+    t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all duration-300 pointer-events-auto opacity-100 translate-y-0';
+    setTimeout(() => { t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none'; }, 4000);
+}
+
+// ── Generador de código de orden ───────────────────────────────
+function generateOrderCode() {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `PV-${ts}-${rand}`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ── Conectar botones de acciones rápidas ─────────────────────
+    const btnVenta = document.getElementById('btn-open-venta');
+    const btnGasto = document.getElementById('btn-open-gasto');
+    if (btnVenta) btnVenta.addEventListener('click', abrirModalVenta);
+    if (btnGasto) btnGasto.addEventListener('click', abrirModalGasto);
+
+    // ── Form: Registrar Venta ────────────────────────────────────
+    const formVenta = document.getElementById('form-venta');
+    if (formVenta) {
+        formVenta.addEventListener('submit', async () => {
+            const sb = (typeof window.supabase !== 'undefined')
+                ? window.supabase.createClient(
+                    localStorage.getItem('supabaseUrl'),
+                    localStorage.getItem('supabaseKey')
+                  )
+                : null;
+
+            if (!sb) {
+                dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
+                return;
+            }
+
+            const monto   = Math.round((parseFloat(document.getElementById('venta-monto').value) || 0) * 100) / 100;
+            const metodo  = document.getElementById('venta-metodo').value;
+            const entrega = document.getElementById('venta-entrega').value;
+
+            if (monto <= 0) {
+                dashToast('warning', 'El monto debe ser mayor a Bs. 0.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-venta');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>';
+
+            try {
+                const { error } = await sb.from('sales').insert([{
+                    order_code:     generateOrderCode(),
+                    total_amount:   monto,
+                    payment_method: metodo,
+                    delivery_type:  entrega,
+                    status:         'confirmado'
+                }]);
+
+                if (error) throw error;
+
+                cerrarModalVenta();
+                dashToast('check_circle', `Venta de Bs. ${monto.toFixed(2)} registrada correctamente.`, 'success');
+                // Refrescar dashboard
+                if (typeof loadDashboard === 'function') loadDashboard();
+            } catch (err) {
+                console.error('Error registrando venta:', err);
+                dashToast('error', `Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        });
+    }
+
+    // ── Form: Añadir Gasto ───────────────────────────────────────
+    const formGasto = document.getElementById('form-gasto');
+    if (formGasto) {
+        formGasto.addEventListener('submit', async () => {
+            const sb = (typeof window.supabase !== 'undefined')
+                ? window.supabase.createClient(
+                    localStorage.getItem('supabaseUrl'),
+                    localStorage.getItem('supabaseKey')
+                  )
+                : null;
+
+            if (!sb) {
+                dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
+                return;
+            }
+
+            const categoria = document.getElementById('gasto-categoria').value;
+            const monto     = Math.round((parseFloat(document.getElementById('gasto-monto').value) || 0) * 100) / 100;
+            const fecha     = document.getElementById('gasto-fecha').value;
+
+            if (monto <= 0 || !fecha) {
+                dashToast('warning', 'Completa todos los campos del gasto.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-gasto');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>';
+
+            try {
+                const { error } = await sb.from('expenses').insert([{
+                    category:     categoria,
+                    amount:       monto,
+                    payment_date: fecha
+                }]);
+
+                if (error) throw error;
+
+                cerrarModalGasto();
+                dashToast('check_circle', `Gasto de Bs. ${monto.toFixed(2)} (${categoria}) registrado.`, 'success');
+                if (typeof loadDashboard === 'function') loadDashboard();
+            } catch (err) {
+                console.error('Error registrando gasto:', err);
+                dashToast('error', `Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        });
+    }
+});
 </script>
 
 </body>

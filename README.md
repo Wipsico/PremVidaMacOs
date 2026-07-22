@@ -15,6 +15,7 @@
 6. [Base de Datos (Schema)](#base-de-datos-schema)  
 7. [Changelog de Estabilización](#changelog-de-estabilización)  
 8. [Nota Anti-Hibernación](#nota-anti-hibernación)  
+9. [Guía de Despliegue en GitHub y Vercel](#guía-de-despliegue-en-github-y-vercel)
 
 ---
 
@@ -184,6 +185,13 @@ Ejecutar el archivo `db/schema.sql` en **SQL Editor** de Supabase para crear la 
 
 ## Changelog de Estabilización
 
+### v1.5.0 — 2026-07-14 (Fase de Estabilización y Despliegue)
+- ✅ **Auto-inyección de Llaves** — Conexión directa a Supabase mediante fallback de credenciales reales si el `localStorage` está vacío.
+- ✅ **`db/schema.sql`** — Añadida tabla `customers` y campo `expiry_date` en `products`.
+- ✅ **Estabilización de UI** — Reemplazo total de datos "mock" en `analytics.html` y `customers.html` por conexión real a la base de datos de Supabase.
+- ✅ **Integridad Matemática** — Redondeos estrictos a 2 decimales en el módulo de inventario (`js/core/logic.js`) para prevenir derivas flotantes y se ha corregido el resaltado verde del `sale_price` en `code.html`.
+- ✅ **Documentación** — Generación de `.gitignore` para el entorno frontend y esta guía de despliegue en GitHub/Vercel.
+
 ### v1.4.0 — 2026-07-08
 - ✅ **`analytics.html`** — Nuevo panel: rotación de stock, alertas de vencimiento crítico, barras de degradación animadas, distribución por categoría.
 - ✅ **`customers.html`** — Nuevo módulo: tabla de compradores con KPIs, búsqueda en vivo, avatares con iniciales generadas dinámicamente.
@@ -235,3 +243,52 @@ La suite detecta este error y muestra un banner de advertencia en la parte super
 ---
 
 *Documentación generada para Prem Vida Admin Suite — Proyecto académico de gestión de inventario vegano.*
+
+---
+
+## Guía de Despliegue en GitHub y Vercel
+
+Esta sección es una guía paso a paso para los compañeros de la facultad sobre cómo inicializar Git localmente, conectar con GitHub y publicar la tienda gratuitamente en **GitHub Pages** o **Vercel**.
+
+### 1. Inicialización de Git Local (Terminal)
+
+Abre la terminal en la carpeta del proyecto y ejecuta los siguientes comandos en orden:
+
+```bash
+# 1. Inicializar el repositorio Git
+git init
+
+# 2. Agregar todos los archivos al tracking (respeta el .gitignore)
+git add .
+
+# 3. Crear el primer commit
+git commit -m "feat: estabilización inicial v1.5.0, conexión real a Supabase e Inventario robusto"
+
+# 4. Crear la rama principal (main)
+git branch -M main
+
+# 5. Conectar con el repositorio remoto de GitHub (reemplazar con tu URL real)
+git remote add origin https://github.com/Wipsico/PremVidaMacOs.git
+
+# 6. Subir el código a GitHub
+git push -u origin main
+```
+
+### 2. Despliegue Gratuito (Opciones)
+
+#### Opción A: GitHub Pages (Más rápido)
+1. Ve a tu repositorio en GitHub.
+2. Ve a **Settings** > **Pages** (en el menú izquierdo).
+3. Bajo **Build and deployment**, en **Source**, selecciona `Deploy from a branch`.
+4. En **Branch**, selecciona `main` y la carpeta `/ (root)`. Haz clic en **Save**.
+5. Espera unos minutos y tu sitio estará vivo en: `https://[tu-usuario].github.io/PremVidaMacOs`
+
+#### Opción B: Vercel (Recomendado para mayor velocidad y CDN global)
+1. Inicia sesión en [Vercel.com](https://vercel.com/) con tu cuenta de GitHub.
+2. Haz clic en **"Add New..."** > **"Project"**.
+3. Importa el repositorio `PremVidaMacOs`.
+4. En la configuración (Build and Output Settings), deja el **Framework Preset** en `Other` (ya que es HTML/JS estático).
+5. Haz clic en **Deploy**.
+6. En segundos, Vercel generará una URL pública segura (ej. `premvida-macos.vercel.app`).
+
+> **Nota de Seguridad:** Al ser una aplicación Frontend Vanilla JS, las credenciales de Supabase (`URL` y `Anon Key`) son públicas por definición. Esto es normal en arquitecturas Serverless con Supabase; la seguridad recae en las políticas RLS (Row Level Security) que se han configurado en la base de datos a través de `schema.sql`.
