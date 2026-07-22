@@ -191,3 +191,4 @@ Trabajar por fases bajo Spec-Driven Development:
 - Configurar Google OAuth en Supabase Dashboard con el Client ID/Secret correspondiente.
 - Crear o aprobar el perfil del correo Google del propietario/hermano en `public.profiles` con rol `admin` u `operator`.
 - Continuar Fase 2/Fase 3: corregir `tienda.html`, guardar pedido en Supabase antes de abrir WhatsApp, y luego crear `sales.html`.
+- Guia operativa creada en `docs/GUIA_AUTH_RLS_OPERACION_GIT.md` con pasos SQL, aprobacion de usuarios, uso diario y comandos Git/GitHub.
