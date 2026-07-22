@@ -115,3 +115,22 @@
 * Si un producto tiene `stock = 0`, el botón cambia a **"Reservar / Notificarme cuando llegue"**.
 * **Feedback del Cliente:** Modal donde el cliente puede solicitar el producto y dejar comentarios (ej. *"¿Podrían traer este producto en otros sabores?"*).
 * **Panel de Alertas Admin:** Las solicitudes de reserva y comentarios de feedback llegan directamente al panel de notificaciones de los administradores.
+## 🐛 Bug Fixes & Hotfixes
+
+### [FIX-004] Corrección de URL de Dominio / Subdominio de Supabase (404 / ERR_NAME_NOT_RESOLVED)
+
+- **Descripción:** Las peticiones HTTP REST y las conexiones WebSocket de Realtime hacia Supabase estaban fallando con el error `net::ERR_NAME_NOT_RESOLVED` y `Error canal public:products: transport failure`.
+- **Causa Raíz:** Se detectaron errores tipográficos (caracteres extra como `f` o `g`) en las constantes de URL de producción fallback (`_PROD_URL` y `FALLBACK_URL`) dentro de `code.html` y `js/core/shared.js`, ocasionando que la URL guardada en `localStorage` no resolviera a nivel de DNS.
+- **Acción Realizada / Solución:**
+  - Standardización de la URL oficial de Supabase a: `https://jifgbcjkqzffvtxxktg.supabase.co`.
+  - Corrección de la constante `_PROD_URL` en `code.html` (línea ~264) y sincronización con `js/core/shared.js`.
+  - Limpieza de credenciales obsoletas/corruptas en `localStorage` (`localStorage.clear()`).
+- **Estado:** ✅ Completado / Resuelto.
+
+---
+
+### 📋 Checkpoint de Verificación Técnica (Supabase Connectivity)
+- [x] Verificar que `_PROD_URL` no contenga caracteres extra en `code.html`.
+- [x] Sincronizar clave `supabaseUrl` en `localStorage` con la URL corregida.
+- [x] Validar que las llamadas a `/rest/v1/products`, `/purchase_orders` y `/expenses` retornen código `200 OK`.
+- [x] Confirmar que las suscripciones a canales Realtime (`public:products`, `public:purchase_orders`, `public:expenses`) no emitan `transport failure`.

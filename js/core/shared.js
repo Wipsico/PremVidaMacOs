@@ -13,20 +13,28 @@ const isPublicPage = PUBLIC_PAGES.includes(currentPage);
 
 let supabaseUrl  = localStorage.getItem('supabaseUrl');
 let supabaseKey  = localStorage.getItem('supabaseKey');
+// ── 1. Session and Routing Check ─────────────────────────────────────────────
+const pathname   = window.location.pathname;
+const isLoginPage    = pathname.endsWith('login.html');
+const PUBLIC_PAGES = ['login.html', 'tienda.html', 'index.html'];
+const currentPage = pathname.split('/').pop() || 'index.html';
+const isPublicPage = PUBLIC_PAGES.includes(currentPage);
 
-// Fallback de llaves reales (Prem Vida Production)
-// ✅ DESPUÉS (Corregida la URL exacta de tu proyecto Supabase)
-const FALLBACK_URL = 'https://jiftqbcjkqztfvtxxktq.supabase.co';
+// URL Oficial de producción en Supabase
+// ✅ URL REAL de tu proyecto Supabase (tomada de tu panel)
+const FALLBACK_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
 const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
-let usingFallback  = false;
 
-if (!supabaseUrl || !supabaseKey) {
+// Si la URL guardada en localStorage no coincide con la oficial o está mal escrita, la corregimos automáticamente
+let supabaseUrl  = localStorage.getItem('supabaseUrl');
+let supabaseKey  = localStorage.getItem('supabaseKey');
+
+if (!supabaseUrl || !supabaseUrl.includes('jiftqbcjkqztfvtxxktq')) {
     supabaseUrl = FALLBACK_URL;
     supabaseKey = FALLBACK_KEY;
-    usingFallback = true;
     localStorage.setItem('supabaseUrl', supabaseUrl);
     localStorage.setItem('supabaseKey', supabaseKey);
-    console.log('⚡ Prem Vida: credenciales de fallback aplicadas correctamente. Conexión establecida con el proyecto de producción.');
+    console.log('⚡ Prem Vida: credenciales actualizadas a la URL oficial de producción.');
 }
 
 // ── 2. Supabase Client Initialization ────────────────────────────────────────
