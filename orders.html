@@ -3,908 +3,103 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Prem Vida Admin – Órdenes de Compra</title>
-    <meta name="description" content="Gestión de órdenes de compra con proveedores de Prem Vida agrupadas por marca en Bolivianos (Bs.)."/>
+    <title>Prem Vida Admin - Gestión de Órdenes</title>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- Google Fonts & Material Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/core/shared.js" defer></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'surface':              '#131315',
-                        'primary':              '#4edea3',
-                        'primary-container':    '#10b981',
-                        'on-primary':           '#003824',
-                        'on-primary-container': '#00422b',
-                        'secondary':            '#ffb95f',
-                        'on-surface':           '#e5e1e4',
-                        'on-surface-variant':   '#bbcabf',
-                        'surface-container':    '#201f22',
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #09090b;
             color: #e5e1e4;
             overflow-x: hidden;
         }
-        /* ── Glass card ── */
         .glass-card {
-            background: rgba(19, 19, 21, 0.65);
+            background: rgba(19, 19, 21, 0.6);
             backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top-color: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7), inset 0 1px 0 0 rgba(255,255,255,0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
-        /* ── Material Icons ── */
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        /* ── Navigation ── */
-        .nav-active {
-            color: #4edea3;
-            font-weight: 700;
-            border-right: 2px solid #4edea3;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .nav-inactive { color: #bbcabf; }
-        .nav-inactive:hover { background: rgba(255, 255, 255, 0.05); }
-
-        /* ── Tabs ── */
-        .tab-btn {
-            transition: all 0.2s ease;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-        }
-        .tab-btn.tab-active {
-            color: #4edea3;
-            border-bottom-color: #4edea3;
-            background: rgba(78, 222, 163, 0.06);
-        }
-        .tab-btn.tab-inactive {
-            color: #bbcabf;
-        }
-        .tab-btn.tab-inactive:hover {
-            color: #e5e1e4;
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* ── KPI counter animation ── */
-        @keyframes kpi-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .kpi-anim { animation: kpi-in 0.45s ease forwards; }
-
-        /* ── Table row hover ── */
-        tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
-
-        /* ── Custom scrollbar ── */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-
-        /* ── Form inputs dark ── */
-        input[type="text"],
-        input[type="number"],
-        input[type="date"],
-        select { color-scheme: dark; }
-
-        /* ── Dot indicator colors ── */
-        .dot-heartbeef  { background: #f87171; }
-        .dot-green-leaf { background: #4ade80; }
-        .dot-other      { background: #a78bfa; }
-
-        /* ── Badge status ── */
-        .badge-pagado    { background: rgba(78,222,163,0.12);  color: #4edea3; }
-        .badge-pendiente { background: rgba(251,191,36,0.12);  color: #fbbf24; }
-        .badge-solicitado{ background: rgba(96,165,250,0.12);  color: #60a5fa; }
-
-        /* ── Toast transitions ── */
-        #toast {
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        #toast.toast-show  { opacity: 1; transform: translateY(0); }
-        #toast.toast-hide  { opacity: 0; transform: translateY(20px); pointer-events: none; }
-
-        /* ── Spinner ── */
-        .spin { animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="flex min-h-screen">
+<body class="flex h-screen bg-[#09090b]">
 
-<!-- ══════════════════════════════════════════════════════════════
-     SIDEBAR NAVIGATION  (Idéntico al resto de vistas — solo cambia nav-active)
-     ══════════════════════════════════════════════════════════════ -->
-<aside class="w-[280px] h-screen sticky left-0 top-0 bg-surface/60 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-8 px-6 z-50">
-    <!-- Logo -->
-    <div class="flex items-center gap-3 mb-10">
-        <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center flex-shrink-0">
-            <span class="material-symbols-outlined text-on-primary-container text-xl" style="font-variation-settings:'FILL' 1">eco</span>
+    <!-- Sidebar Lateral Oculto/Fijo Simplificado -->
+    <aside class="w-64 bg-[#121214] border-r border-zinc-800 flex flex-col justify-between p-4">
+        <div class="space-y-6">
+            <div class="flex items-center gap-2 px-2 py-4">
+                <span class="material-symbols-outlined text-emerald-500 text-3xl">eco</span>
+                <span class="text-xl font-bold tracking-wider text-white">Prem Vida</span>
+            </div>
+            <nav class="space-y-1">
+                <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:text-white rounded-xl transition"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+                <a href="code.html" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:text-white rounded-xl transition"><span class="material-symbols-outlined">inventory</span>Inventory</a>
+                <a href="orders.html" class="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 text-emerald-400 rounded-xl font-medium"><span class="material-symbols-outlined">shopping_cart</span>Orders</a>
+                <a href="customers.html" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:text-white rounded-xl transition"><span class="material-symbols-outlined">group</span>Customers</a>
+                <a href="analytics.html" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:text-white rounded-xl transition"><span class="material-symbols-outlined">analytics</span>Analytics</a>
+                <a href="settings.html" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:text-white rounded-xl transition"><span class="material-symbols-outlined">settings</span>Settings</a>
+            </nav>
         </div>
-        <div>
-            <h1 class="font-bold text-base text-on-surface leading-tight">Prem Vida</h1>
-            <p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Admin Suite</p>
-        </div>
-    </div>
-    <!-- Nav links -->
-    <nav class="flex-1 space-y-1">
-        <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">dashboard</span>
-            <span class="text-sm">Dashboard</span>
-        </a>
-        <a href="code.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">inventory_2</span>
-            <span class="text-sm">Inventory</span>
-        </a>
-        <a href="orders.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-active">
-            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">shopping_cart</span>
-            <span class="text-sm font-medium">Orders</span>
-        </a>
-        <a href="customers.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">group</span>
-            <span class="text-sm">Customers</span>
-        </a>
-        <a href="analytics.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">monitoring</span>
-            <span class="text-sm">Analytics</span>
-        </a>
-        <a href="personal.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">badge</span>
-            <span class="text-sm">Personal &amp; Nómina</span>
-        </a>
-        <a href="settings.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors nav-inactive">
-            <span class="material-symbols-outlined">settings</span>
-            <span class="text-sm">Settings</span>
-        </a>
-    </nav>
-    <!-- Logout -->
-    <div class="mt-auto pt-6 border-t border-white/10">
-        <button id="btn-sidebar-logout" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/80 hover:bg-red-500/10 transition-colors">
-            <span class="material-symbols-outlined">logout</span>
-            <span class="text-sm">Cerrar Sesión</span>
-        </button>
-    </div>
-</aside>
+    </aside>
 
-<!-- ══════════════════════════════════════════════════════════════
-     MAIN CONTENT
-     ══════════════════════════════════════════════════════════════ -->
-<main class="flex-1 min-h-screen flex flex-col">
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-y-auto p-8 relative">
+        <!-- Contenedor del Banner de Mantenimiento inyectado por shared.js -->
+        <div id="maintenance-banner-container"></div>
 
-    <!-- ── Top App Bar ── -->
-    <header class="sticky top-0 z-40 bg-[#09090b]/80 backdrop-blur-[40px] border-b border-white/10 h-20 px-8 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-5">
+        <!-- Encabezado de la Sección -->
+        <div class="flex justify-between items-center mb-8">
             <div>
-                <h2 class="font-bold text-lg text-on-surface leading-tight">Órdenes de Compra</h2>
-                <p class="text-[11px] text-on-surface-variant uppercase tracking-widest">Distribución &amp; Carpetas por Marca</p>
+                <h1 class="text-3xl font-bold text-white tracking-tight">Order & Sales Management</h1>
+                <p class="text-zinc-400 text-sm mt-1">Administra transacciones de clientes y facturas de almacén.</p>
             </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button id="btn-refresh" title="Refrescar datos"
-                    class="p-2.5 rounded-full hover:bg-white/5 transition-colors group">
-                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors" id="refresh-icon">refresh</span>
-            </button>
-            <button id="btn-new-order"
-                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 active:scale-95"
-                    style="background:#4edea3; color:#003824; box-shadow:0 8px 24px rgba(78,222,163,0.25);">
-                <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1">add_shopping_cart</span>
-                Nueva Orden
-            </button>
-        </div>
-    </header>
-
-    <!-- ── Page body ── -->
-    <div class="flex-1 p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-
-        <!-- ════════ KPI ROW ════════ -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-
-            <!-- KPI 1: Total Invertido en Órdenes del Mes -->
-            <div class="glass-card rounded-2xl p-6 flex flex-col gap-3">
-                <div class="flex items-start justify-between">
-                    <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-widest">Total Invertido (mes)</p>
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(78,222,163,0.1)">
-                        <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings:'FILL' 1">payments</span>
-                    </div>
-                </div>
-                <p id="kpi-total-orders" class="text-3xl font-bold text-on-surface kpi-anim">Bs. —</p>
-                <p class="text-xs text-primary flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">calendar_month</span>
-                    <span id="kpi-month-label">Mes en curso</span>
-                </p>
-            </div>
-
-            <!-- KPI 2: Órdenes Pendientes -->
-            <div class="glass-card rounded-2xl p-6 flex flex-col gap-3">
-                <div class="flex items-start justify-between">
-                    <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-widest">Órdenes Pendientes</p>
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(251,191,36,0.1)">
-                        <span class="material-symbols-outlined text-amber-400 text-lg" style="font-variation-settings:'FILL' 1">hourglass_top</span>
-                    </div>
-                </div>
-                <p id="kpi-pending-orders" class="text-3xl font-bold text-on-surface kpi-anim">—</p>
-                <p class="text-xs text-amber-400 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">warning_amber</span>
-                    Sin pagar / Sin recibir
-                </p>
-            </div>
-
-            <!-- KPI 3: Marca Líder del Mes -->
-            <div class="glass-card rounded-2xl p-6 flex flex-col gap-3">
-                <div class="flex items-start justify-between">
-                    <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-widest">Marca Líder del Mes</p>
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(96,165,250,0.1)">
-                        <span class="material-symbols-outlined text-blue-400 text-lg" style="font-variation-settings:'FILL' 1">military_tech</span>
-                    </div>
-                </div>
-                <p id="kpi-leader-brand" class="text-3xl font-bold text-on-surface kpi-anim">—</p>
-                <p id="kpi-leader-amount" class="text-xs text-blue-400 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">analytics</span>
-                    Mayor volumen acumulado
-                </p>
-            </div>
-        </div>
-
-        <!-- ════════ TABS (CARPETAS POR MARCA) ════════ -->
-        <div class="border-b border-white/10">
-            <div class="flex gap-1" role="tablist" aria-label="Filtro por marca">
-                <button id="tab-todas"
-                        role="tab" aria-selected="true"
-                        onclick="switchTab('todas')"
-                        class="tab-btn tab-active px-5 py-3 rounded-t-lg font-semibold text-sm">
-                    Todas las Marcas
+            <div class="flex gap-3">
+                <button id="btn-export-sales" class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition border border-zinc-700">
+                    <span class="material-symbols-outlined text-sm">download</span> Export Sales
                 </button>
-                <button id="tab-heartbeef"
-                        role="tab" aria-selected="false"
-                        onclick="switchTab('heartbeef')"
-                        class="tab-btn tab-inactive px-5 py-3 rounded-t-lg font-semibold text-sm">
-                    🥩 Heartbeef
-                </button>
-                <button id="tab-green-leaf"
-                        role="tab" aria-selected="false"
-                        onclick="switchTab('green leaf')"
-                        class="tab-btn tab-inactive px-5 py-3 rounded-t-lg font-semibold text-sm">
-                    🌿 Green Leaf
-                </button>
-                <button id="tab-otros"
-                        role="tab" aria-selected="false"
-                        onclick="switchTab('otros')"
-                        class="tab-btn tab-inactive px-5 py-3 rounded-t-lg font-semibold text-sm">
-                    📦 Otros Proveedores
+                <button id="btn-print-summary" class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+                    <span class="material-symbols-outlined text-sm">print</span> Print Bills
                 </button>
             </div>
         </div>
 
-        <!-- ════════ ORDERS TABLE CARD ════════ -->
-        <div class="glass-card rounded-2xl flex flex-col gap-0 overflow-hidden">
-
-            <!-- Card header -->
-            <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">local_shipping</span>
-                    <h3 class="font-bold text-base text-on-surface">Listado de Órdenes de Compra</h3>
-                    <span id="orders-count-badge"
-                          class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                          style="background:rgba(78,222,163,0.12); color:#4edea3;">0 órdenes</span>
-                </div>
-                <p id="table-subtitle" class="text-xs text-on-surface-variant">Visualizando todas las marcas</p>
+        <!-- Tabla Glassmorphic principal -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-zinc-800">
+            <div class="p-6 border-b border-zinc-800/50 flex justify-between items-center">
+                <h3 class="font-semibold text-lg text-white">Historial Operativo</h3>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-medium">Realtime activo</span>
             </div>
-
-            <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-[10px] uppercase tracking-widest text-on-surface-variant border-b border-white/5">
-                            <th class="text-left pl-6 pr-3 py-3.5 font-semibold">Código de Orden</th>
-                            <th class="text-left px-3 py-3.5 font-semibold">Proveedor / Marca</th>
-                            <th class="text-left px-3 py-3.5 font-semibold">Fecha de Solicitud</th>
-                            <th class="text-right px-3 py-3.5 font-semibold">Costo Total</th>
-                            <th class="text-center px-3 py-3.5 font-semibold">Estado</th>
-                            <th class="text-right pr-6 pl-3 py-3.5 font-semibold">Acciones</th>
+                <table class="w-full text-left text-sm text-zinc-300">
+                    <thead class="bg-zinc-900/40 text-xs uppercase text-zinc-400 font-semibold border-b border-zinc-800">
+                        <tr>
+                            <th class="px-6 py-4">ID Orden</th>
+                            <th class="px-6 py-4">Cliente / Proveedor</th>
+                            <th class="px-6 py-4">Tipo</th>
+                            <th class="px-6 py-4">Monto Total</th>
+                            <th class="px-6 py-4">Estado</th>
+                            <th class="px-6 py-4 text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="orders-table-body" class="divide-y divide-white/5">
-                        <!-- Filled by JS -->
-                        <tr id="table-loading-row">
-                            <td colspan="6" class="py-16 text-center">
-                                <div class="flex items-center justify-center gap-2 text-on-surface-variant">
-                                    <div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full spin"></div>
-                                    <span class="text-xs">Cargando órdenes de compra...</span>
-                                </div>
+                    <tbody id="orders-table-body">
+                        <!-- Spinner o filas se cargan dinámicamente -->
+                        <tr>
+                            <td colspan="6" class="text-center py-12 text-zinc-500">
+                                <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent mb-2"></div>
+                                <p>Sincronizando flujos financieros con Supabase...</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-</main>
-
-<!-- ══════════════════════════════════════════════════════════════
-     TOAST NOTIFICATION
-     ══════════════════════════════════════════════════════════════ -->
-<div id="toast"
-     class="toast-hide fixed bottom-6 left-6 z-[200] px-5 py-4 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl flex items-center gap-3"
-     style="background:rgba(19,19,21,0.95); min-width:280px;">
-    <span id="toast-icon" class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">check_circle</span>
-    <p id="toast-msg" class="text-sm font-medium text-on-surface flex-1"></p>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     MODAL: NUEVA ORDEN DE COMPRA
-     ══════════════════════════════════════════════════════════════ -->
-<div id="modal-new-order"
-     class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
-     role="dialog" aria-modal="true" aria-labelledby="modal-title">
-
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-black/75 backdrop-blur-sm" onclick="closeModal()"></div>
-
-    <!-- Panel -->
-    <div class="relative w-full max-w-md rounded-3xl p-8 space-y-6 z-10 shadow-2xl"
-         style="background:rgba(19,19,21,0.97); border:1px solid rgba(255,255,255,0.12);">
-
-        <!-- Header -->
-        <div class="flex items-center justify-between border-b border-white/10 pb-4">
-            <h3 id="modal-title" class="font-bold text-lg text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">add_shopping_cart</span>
-                Nueva Orden de Compra
-            </h3>
-            <button onclick="closeModal()" class="p-2 rounded-full hover:bg-white/10 transition-colors" aria-label="Cerrar modal">
-                <span class="material-symbols-outlined text-on-surface-variant">close</span>
-            </button>
-        </div>
-
-        <!-- Form -->
-        <form id="form-new-order" class="space-y-5" novalidate>
-
-            <!-- Proveedor -->
-            <div class="space-y-1.5">
-                <label for="order-supplier-id" class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                    Proveedor / Marca *
-                </label>
-                <select id="order-supplier-id" required
-                        class="w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e5e1e4;">
-                    <option value="" class="bg-surface">— Seleccionar proveedor —</option>
-                </select>
-            </div>
-
-            <!-- Costo Total -->
-            <div class="space-y-1.5">
-                <label for="order-total-amount" class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                    Costo Total de Adquisición (Bs.) *
-                </label>
-                <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-on-surface-variant select-none">Bs.</span>
-                    <input id="order-total-amount" type="number" required
-                           min="0.01" step="0.01" placeholder="0.00"
-                           class="w-full rounded-xl pl-12 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                           style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e5e1e4;"/>
-                </div>
-                <p class="text-[10px] text-on-surface-variant">El valor se guardará con redondeo financiero riguroso (Bs.).</p>
-            </div>
-
-            <!-- Estado -->
-            <div class="space-y-1.5">
-                <label for="order-status" class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                    Estado de la Orden *
-                </label>
-                <select id="order-status" required
-                        class="w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e5e1e4;">
-                    <option value="pendiente" class="bg-surface">🟡 Pendiente (sin pagar)</option>
-                    <option value="solicitado" class="bg-surface">🔵 Solicitado (pedido enviado)</option>
-                    <option value="pagado"     class="bg-surface">🟢 Pagado / Recibido</option>
-                </select>
-            </div>
-
-            <!-- Error message -->
-            <p id="form-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2"></p>
-
-            <!-- Actions -->
-            <div class="flex gap-3 pt-2">
-                <button type="button" onclick="closeModal()"
-                        class="flex-1 py-3 rounded-xl font-bold text-sm text-on-surface hover:bg-white/10 transition-colors"
-                        style="border:1px solid rgba(255,255,255,0.1);">
-                    Cancelar
-                </button>
-                <button id="btn-submit-order" type="submit"
-                        class="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95"
-                        style="background:#4edea3; color:#003824; box-shadow:0 10px 30px rgba(78,222,163,0.25);">
-                    <span class="material-symbols-outlined text-base" id="submit-icon" style="font-variation-settings:'FILL' 1">save</span>
-                    <span id="submit-label">Registrar Orden</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     SCRIPTS
-     ══════════════════════════════════════════════════════════════ -->
-<script type="module">
-    import {
-        fetchSupplierOrders,
-        insertPurchaseOrder,
-        fetchSuppliers
-    } from './js/core/orders-logic.js';
-
-    // ── Financial rounding helper (Bolivia) ─────────────────────────────────
-    const bs = (v) => Math.round((parseFloat(v) || 0) * 100) / 100;
-
-    // ── Auth guard ───────────────────────────────────────────────────────────
-    // ── Supabase client ──────────────────────────────────────────────────────
-    let sb = null;
-    try {
-        const sbUrl = localStorage.getItem('supabaseUrl');
-        const sbKey = localStorage.getItem('supabaseKey');
-        if (sbUrl && sbKey && typeof window.supabase !== 'undefined') {
-            sb = window.supabase.createClient(sbUrl, sbKey);
-        }
-    } catch (e) {
-        console.warn('[orders] Supabase init failed:', e);
-    }
-
-    // ── State ────────────────────────────────────────────────────────────────
-    let allOrders        = [];   // All orders fetched from DB (no tab filter)
-    let filteredOrders   = [];   // Orders visible in current tab
-    let currentTab       = 'todas';
-    let toastTimer       = null;
-
-    // ── Brand identity helpers ───────────────────────────────────────────────
-    const HEARTBEEF_ALIASES  = ['heartbeef', 'heart beef'];
-    const GREENLEAF_ALIASES  = ['green leaf', 'greenleaf', 'green-leaf'];
-
-    function brandKey(supplierName) {
-        const n = (supplierName || '').toLowerCase().trim();
-        if (HEARTBEEF_ALIASES.includes(n))  return 'heartbeef';
-        if (GREENLEAF_ALIASES.includes(n))  return 'green leaf';
-        return 'otros';
-    }
-
-    function dotClass(supplierName) {
-        const k = brandKey(supplierName);
-        if (k === 'heartbeef')  return 'dot-heartbeef';
-        if (k === 'green leaf') return 'dot-green-leaf';
-        return 'dot-other';
-    }
-
-    // ── DOM Ready ─────────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-        initPage();
-        document.getElementById('btn-refresh').addEventListener('click', () => loadAllData(true));
-        document.getElementById('btn-new-order').addEventListener('click', openModal);
-        document.getElementById('form-new-order').addEventListener('submit', handleSubmitOrder);
-        document.getElementById('btn-sidebar-logout').addEventListener('click', () => {
-            if (window.premVidaLogout) window.premVidaLogout();
-            else window.location.href = 'login.html';
-        });
-        // Keyboard: close modal on Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        });
-    });
-
-    // ── Init ──────────────────────────────────────────────────────────────────
-    async function initPage() {
-        // Set month label in KPI 1
-        const now = new Date();
-        const monthStr = now.toLocaleString('es-BO', { month: 'long', year: 'numeric' });
-        document.getElementById('kpi-month-label').textContent =
-            monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
-
-        await loadAllData(false);
-    }
-
-    // ── Load all data (orders + suppliers for modal) ──────────────────────────
-    async function loadAllData(showSpin = false) {
-        if (showSpin) setRefreshSpin(true);
-        try {
-            const [ordersResult, suppliersResult] = await Promise.allSettled([
-                fetchSupplierOrders(sb),
-                fetchSuppliers(sb)
-            ]);
-
-            // Orders
-            if (ordersResult.status === 'fulfilled') {
-                allOrders = ordersResult.value;
-            } else {
-                console.error('Orders fetch error:', ordersResult.reason);
-                allOrders = [];
-                showError('No se pudo conectar a Supabase. Verifica tus credenciales en Settings.');
-            }
-
-            // Suppliers dropdown
-            if (suppliersResult.status === 'fulfilled') {
-                populateSupplierSelect(suppliersResult.value);
-            }
-
-            applyTabFilter(currentTab);
-            computeKPIs();
-
-        } catch (err) {
-            console.error('loadAllData error:', err);
-        } finally {
-            if (showSpin) setRefreshSpin(false);
-        }
-    }
-
-    // ── Populate supplier <select> in modal ───────────────────────────────────
-    function populateSupplierSelect(suppliers) {
-        const sel = document.getElementById('order-supplier-id');
-        const existing = sel.querySelectorAll('option:not([value=""])');
-        existing.forEach(o => o.remove());
-
-        if (!suppliers || suppliers.length === 0) {
-            const opt = document.createElement('option');
-            opt.value = '';
-            opt.textContent = 'Sin proveedores registrados';
-            opt.disabled = true;
-            opt.className = 'bg-surface';
-            sel.appendChild(opt);
-            return;
-        }
-
-        suppliers.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value  = s.id;
-            opt.textContent = `${s.name}${s.city ? ' · ' + s.city : ''}`;
-            opt.className = 'bg-surface';
-            sel.appendChild(opt);
-        });
-    }
-
-    // ── Tab switcher (case-insensitive) ───────────────────────────────────────
-    const TAB_IDS = {
-        'todas':       'tab-todas',
-        'heartbeef':   'tab-heartbeef',
-        'green leaf':  'tab-green-leaf',
-        'otros':       'tab-otros',
-    };
-
-    window.switchTab = function(tabKey) {
-        const key = (tabKey || '').toLowerCase().trim();
-        currentTab = key;
-
-        // Toggle active classes
-        Object.entries(TAB_IDS).forEach(([k, id]) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            if (k === key) {
-                el.classList.replace('tab-inactive', 'tab-active');
-                el.setAttribute('aria-selected', 'true');
-            } else {
-                el.classList.replace('tab-active', 'tab-inactive');
-                el.setAttribute('aria-selected', 'false');
-            }
-        });
-
-        applyTabFilter(key);
-    };
-
-    // ── Filter orders by current tab ──────────────────────────────────────────
-    function applyTabFilter(key) {
-        const k = (key || '').toLowerCase().trim();
-
-        if (k === 'todas' || !k) {
-            filteredOrders = [...allOrders];
-        } else if (k === 'otros') {
-            filteredOrders = allOrders.filter(o => {
-                const bk = brandKey(o.suppliers?.name || '');
-                return bk === 'otros';
-            });
-        } else {
-            // Match heartbeef / green leaf by normalized alias
-            filteredOrders = allOrders.filter(o => {
-                return brandKey(o.suppliers?.name || '') === k;
-            });
-        }
-
-        // Update subtitle
-        const subtitles = {
-            'todas':      'Visualizando órdenes de todas las marcas',
-            'heartbeef':  'Visualizando órdenes de Heartbeef',
-            'green leaf': 'Visualizando órdenes de Green Leaf',
-            'otros':      'Visualizando órdenes de otros proveedores',
-        };
-        const subtitle = document.getElementById('table-subtitle');
-        if (subtitle) subtitle.textContent = subtitles[k] || '';
-
-        renderTable(filteredOrders);
-    }
-
-    // ── Render orders table ───────────────────────────────────────────────────
-    function renderTable(orders) {
-        const tbody = document.getElementById('orders-table-body');
-
-        // Update count badge
-        const badge = document.getElementById('orders-count-badge');
-        if (badge) badge.textContent = `${orders.length} orden${orders.length !== 1 ? 'es' : ''}`;
-
-        if (!orders.length) {
-            tbody.innerHTML = `
-                <tr>
-                  <td colspan="6" class="py-16 text-center text-xs text-on-surface-variant">
-                    No se encontraron órdenes de compra para esta selección.
-                  </td>
-                </tr>`;
-            return;
-        }
-
-        tbody.innerHTML = orders.map(order => {
-            const supplierName = order.suppliers?.name || 'Desconocido';
-            const shortId      = (order.id || '').substring(0, 8).toUpperCase();
-            const dateStr      = formatDate(order.created_at);
-            const amount       = bs(order.total_amount).toFixed(2);
-            const status       = (order.status || 'pendiente').toLowerCase();
-
-            const statusBadge = {
-                pagado:     `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold badge-pagado">✓ Pagado</span>`,
-                pendiente:  `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold badge-pendiente">⏳ Pendiente</span>`,
-                solicitado: `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold badge-solicitado">📤 Solicitado</span>`,
-            }[status] || `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold badge-pendiente">${esc(status)}</span>`;
-
-            const dc = dotClass(supplierName);
-
-            return `
-            <tr class="transition-colors cursor-default">
-                <td class="pl-6 pr-3 py-4">
-                    <span class="font-mono text-xs text-on-surface-variant font-bold tracking-widest">#${esc(shortId)}</span>
-                </td>
-                <td class="px-3 py-4">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full flex-shrink-0 ${dc}"></span>
-                        <span class="font-medium text-sm text-on-surface">${esc(supplierName)}</span>
-                    </div>
-                </td>
-                <td class="px-3 py-4 text-xs text-on-surface-variant">${esc(dateStr)}</td>
-                <td class="px-3 py-4 text-right">
-                    <span class="font-semibold text-sm text-primary">Bs. ${amount}</span>
-                </td>
-                <td class="px-3 py-4 text-center">${statusBadge}</td>
-                <td class="pr-6 pl-3 py-4 text-right">
-                    <button onclick="printOrderById('${esc(order.id || '')}')"
-                            title="Imprimir comprobante"
-                            class="p-1.5 rounded-lg hover:bg-white/10 transition-colors opacity-40 hover:opacity-100">
-                        <span class="material-symbols-outlined text-base text-on-surface-variant">print</span>
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-    }
-
-    // ── KPI computation ───────────────────────────────────────────────────────
-    function computeKPIs() {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        const monthOrders = allOrders.filter(o => {
-            if (!o.created_at) return false;
-            return new Date(o.created_at) >= startOfMonth;
-        });
-
-        // KPI 1: Total Invertido (mes actual)
-        const totalInvested = monthOrders.reduce((acc, o) => acc + bs(o.total_amount), 0);
-        animKPI('kpi-total-orders', `Bs. ${(Math.round(totalInvested * 100) / 100).toFixed(2)}`);
-
-        // KPI 2: Órdenes Pendientes (todas, no solo del mes)
-        const pendingCount = allOrders.filter(o => (o.status || '').toLowerCase() === 'pendiente').length;
-        animKPI('kpi-pending-orders', pendingCount);
-
-        // KPI 3: Marca Líder del Mes
-        const brandTotals = {};
-        monthOrders.forEach(o => {
-            const name = o.suppliers?.name;
-            if (!name) return;
-            brandTotals[name] = (brandTotals[name] || 0) + bs(o.total_amount);
-        });
-
-        let leaderName   = 'Ninguna';
-        let leaderAmount = 0;
-        for (const [name, total] of Object.entries(brandTotals)) {
-            if (total > leaderAmount) {
-                leaderAmount = total;
-                leaderName   = name;
-            }
-        }
-        animKPI('kpi-leader-brand', leaderName);
-        const leaderAmountEl = document.getElementById('kpi-leader-amount');
-        if (leaderAmountEl) {
-            leaderAmountEl.textContent = leaderAmount > 0
-                ? `📊 Volumen del mes: Bs. ${(Math.round(leaderAmount * 100) / 100).toFixed(2)}`
-                : 'Sin órdenes registradas este mes';
-        }
-    }
-
-    // ── Handle new order form submission ──────────────────────────────────────
-    async function handleSubmitOrder(e) {
-        e.preventDefault();
-
-        const supplierId  = document.getElementById('order-supplier-id').value.trim();
-        const totalRaw    = document.getElementById('order-total-amount').value;
-        const statusVal   = document.getElementById('order-status').value;
-        const errorEl     = document.getElementById('form-error');
-
-        // Client-side validation
-        if (!supplierId) {
-            showFormError('Debes seleccionar un proveedor.'); return;
-        }
-        const amount = bs(parseFloat(totalRaw));
-        if (!totalRaw || amount <= 0) {
-            showFormError('El monto total debe ser mayor a Bs. 0.00.'); return;
-        }
-
-        setSubmitLoading(true);
-        errorEl.classList.add('hidden');
-
-        try {
-            await insertPurchaseOrder(sb, {
-                supplier_id:  supplierId,
-                total_amount: amount,
-                status:       statusVal,
-            });
-            closeModal();
-            document.getElementById('form-new-order').reset();
-            showToast('check_circle', '¡Orden de compra registrada correctamente!', 'success');
-            await loadAllData(false);
-        } catch (err) {
-            showFormError(err.message || 'Error al registrar la orden. Inténtalo de nuevo.');
-        } finally {
-            setSubmitLoading(false);
-        }
-    }
-
-    // ── Modal open/close ──────────────────────────────────────────────────────
-    function openModal() {
-        const modal = document.getElementById('modal-new-order');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-        document.getElementById('form-error').classList.add('hidden');
-        document.getElementById('form-new-order').reset();
-    }
-
-    window.closeModal = function() {
-        const modal = document.getElementById('modal-new-order');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.style.overflow = '';
-    };
-
-    // ── Print order ───────────────────────────────────────────────────────────
-    window.printOrderById = function(orderId) {
-        const order = allOrders.find(o => o.id === orderId);
-        if (!order) return;
-
-        const supplierName = order.suppliers?.name || 'Proveedor';
-        const dateStr      = formatDate(order.created_at);
-        const amountStr    = bs(order.total_amount).toFixed(2);
-        const status       = (order.status || 'pendiente').toUpperCase();
-
-        const w = window.open('', '_blank', 'width=600,height=700');
-        if (!w) { showToast('error', 'No se pudo abrir la ventana de impresión.', 'error'); return; }
-        w.document.write(`<!DOCTYPE html><html lang="es"><head>
-            <meta charset="utf-8"><title>Orden #${order.id.substring(0,8).toUpperCase()}</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 40px; color: #111; line-height: 1.7; max-width: 520px; margin: auto; }
-                h2   { border-bottom: 3px solid #4edea3; padding-bottom: 10px; color: #003824; }
-                .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-                .lbl { font-weight: 600; color: #555; }
-                .amt { font-size: 22px; font-weight: 700; color: #003824; margin-top: 20px; text-align: right; }
-                .ft  { font-size: 10px; color: #999; text-align: center; margin-top: 40px; }
-                @media print { body { padding: 0; } }
-            </style>
-        </head><body>
-            <h2>Prem Vida — Comprobante de Orden</h2>
-            <div class="row"><span class="lbl">ID de Orden</span><span>#${order.id.toUpperCase()}</span></div>
-            <div class="row"><span class="lbl">Proveedor / Marca</span><span>${supplierName}</span></div>
-            <div class="row"><span class="lbl">Fecha de Solicitud</span><span>${dateStr}</span></div>
-            <div class="row"><span class="lbl">Estado</span><span>${status}</span></div>
-            <div class="amt">Total: Bs. ${amountStr}</div>
-            <div class="ft">Documento generado por Prem Vida Admin Suite · Bolivia</div>
-            <script>window.onload = () => window.print();<\/script>
-        </body></html>`);
-        w.document.close();
-    };
-
-    // ── UI Helpers ────────────────────────────────────────────────────────────
-    function animKPI(id, value) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = value;
-        el.classList.remove('kpi-anim');
-        void el.offsetWidth; // Reflow to restart animation
-        el.classList.add('kpi-anim');
-    }
-
-    function showToast(icon, message, type = 'success') {
-        const toast   = document.getElementById('toast');
-        const iconEl  = document.getElementById('toast-icon');
-        const msgEl   = document.getElementById('toast-msg');
-        if (!toast || !iconEl || !msgEl) return;
-
-        iconEl.textContent = icon;
-        msgEl.textContent  = message;
-        iconEl.className   = `material-symbols-outlined ${type === 'error' ? 'text-red-400' : 'text-primary'}`;
-
-        toast.classList.remove('toast-hide');
-        toast.classList.add('toast-show');
-
-        if (toastTimer) clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => {
-            toast.classList.remove('toast-show');
-            toast.classList.add('toast-hide');
-        }, 4500);
-    }
-
-    function showError(msg) {
-        showToast('error', msg, 'error');
-    }
-
-    function showFormError(msg) {
-        const el = document.getElementById('form-error');
-        if (!el) return;
-        el.textContent = msg;
-        el.classList.remove('hidden');
-    }
-
-    function setSubmitLoading(loading) {
-        const btn       = document.getElementById('btn-submit-order');
-        const icon      = document.getElementById('submit-icon');
-        const label     = document.getElementById('submit-label');
-        if (!btn) return;
-        btn.disabled = loading;
-        if (loading) {
-            icon.textContent  = '';
-            label.innerHTML   = '<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full spin inline-block"></div>';
-        } else {
-            icon.textContent  = 'save';
-            label.textContent = 'Registrar Orden';
-        }
-    }
-
-    function setRefreshSpin(spinning) {
-        const icon = document.getElementById('refresh-icon');
-        if (!icon) return;
-        icon.className = `material-symbols-outlined transition-colors ${spinning ? 'text-primary spin' : 'text-on-surface-variant group-hover:text-primary'}`;
-    }
-
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        try {
-            return new Date(dateStr).toLocaleDateString('es-BO', {
-                day: '2-digit', month: 'short', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            });
-        } catch { return dateStr; }
-    }
-
-    function esc(str) {
-        return String(str || '')
-            .replace(/&/g,  '&amp;')
-            .replace(/</g,  '&lt;')
-            .replace(/>/g,  '&gt;')
-            .replace(/"/g,  '&quot;')
-            .replace(/'/g,  '&#39;');
-    }
-</script>
-
+    </main>
+
+    <!-- Cargamos primero la librería de Supabase, luego el módulo central y su lógica -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/core/shared.js"></script>
+    <script type="module" src="js/core/orders-logic.js"></script>
 </body>
 </html>

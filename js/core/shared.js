@@ -15,7 +15,8 @@ let supabaseUrl  = localStorage.getItem('supabaseUrl');
 let supabaseKey  = localStorage.getItem('supabaseKey');
 
 // Fallback de llaves reales (Prem Vida Production)
-const FALLBACK_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
+// ✅ DESPUÉS (Corregida la URL exacta de tu proyecto Supabase)
+const FALLBACK_URL = 'https://jiftqbcjkqztfvtxxktq.supabase.co';
 const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
 let usingFallback  = false;
 
