@@ -174,12 +174,12 @@ export async function fetchAuditLogs(supabase, limit = 120) {
     }
 
     const PER_TABLE = Math.ceil(limit / 5);
-    const [ordersRes, expensesRes, payrollRes, employeesRes, salesRes] = await Promise.allSettled([
+    const [ordersRes, expensesRes, payrollRes, employeesRes, ordersHistoryRes] = await Promise.allSettled([
         supabase.from('purchase_orders').select('id, total_amount, status, created_at, updated_at, suppliers(name)').order('created_at', { ascending: false }).limit(PER_TABLE),
         supabase.from('expenses').select('id, category, amount, payment_date, created_at, updated_at').order('created_at', { ascending: false }).limit(PER_TABLE),
         supabase.from('payroll').select('id, amount_paid, status, payment_date, created_at, updated_at, employees(name)').order('created_at', { ascending: false }).limit(PER_TABLE),
         supabase.from('employees').select('id, name, role, active, created_at, updated_at').order('created_at', { ascending: false }).limit(PER_TABLE),
-        supabase.from('sales').select('id, order_code, total_amount, status, payment_method, delivery_type, created_at, updated_at').order('created_at', { ascending: false }).limit(PER_TABLE),
+        supabase.from('orders').select('id, order_code, total_amount, status, payment_method, delivery_type, created_at, updated_at').order('created_at', { ascending: false }).limit(PER_TABLE),
     ]);
 
     const events = [];
@@ -252,15 +252,15 @@ export async function fetchAuditLogs(supabase, limit = 120) {
         }
     }
 
-    if (salesRes.status === 'fulfilled' && !salesRes.value.error) {
-        for (const row of salesRes.value.data || []) {
+    if (ordersHistoryRes.status === 'fulfilled' && !ordersHistoryRes.value.error) {
+        for (const row of ordersHistoryRes.value.data || []) {
             const isUpdate = row.updated_at && row.updated_at !== row.created_at;
             events.push({
                 id: row.id,
-                table: 'sales',
+                table: 'orders',
                 operation: isUpdate ? 'UPDATE' : 'INSERT',
                 actor: 'Operador / Sistema',
-                summary: `${isUpdate ? 'Venta actualizada' : 'Nueva venta'} · #${row.order_code} · Bs. ${bs(row.total_amount).toFixed(2)}`,
+                summary: `${isUpdate ? 'Orden actualizada' : 'Nueva orden'} · #${row.order_code} · Bs. ${bs(row.total_amount).toFixed(2)}`,
                 amount_bs: bs(row.total_amount),
                 status: row.status,
                 raw: row,

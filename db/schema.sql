@@ -131,9 +131,9 @@ CREATE TABLE IF NOT EXISTS public.payroll (
 ALTER TABLE public.payroll ENABLE ROW LEVEL SECURITY;
 
 -----------------------------------------
--- 9. SALES (Orders)
+-- 9. ORDERS
 -----------------------------------------
-CREATE TABLE IF NOT EXISTS public.sales (
+CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_code TEXT UNIQUE NOT NULL,
     total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (total_amount >= 0),
@@ -145,21 +145,21 @@ CREATE TABLE IF NOT EXISTS public.sales (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 -----------------------------------------
--- 10. SALE ITEMS (Junction for sales and products)
+-- 10. ORDER ITEMS (Junction for orders and products)
 -----------------------------------------
-CREATE TABLE IF NOT EXISTS public.sale_items (
+CREATE TABLE IF NOT EXISTS public.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sale_id UUID NOT NULL REFERENCES public.sales(id) ON DELETE CASCADE,
+    order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.sale_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
 -----------------------------------------
 -- 11. CUSTOMERS (Loyalty & CRM)
@@ -199,7 +199,6 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.purchase_orders FOR EACH R
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.expenses FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.employees FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.payroll FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.sales FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 
@@ -209,39 +208,39 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXE
 -- For employee folders / payroll history query
 CREATE INDEX IF NOT EXISTS idx_payroll_employee_date ON public.payroll(employee_id, payment_date DESC);
 
--- For sales operators and status filtering
-CREATE INDEX IF NOT EXISTS idx_sales_operator_status ON public.sales(operator_id, status);
-CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON public.sale_items(sale_id);
-CREATE INDEX IF NOT EXISTS idx_sale_items_product ON public.sale_items(product_id);
+-- For orders operators and status filtering
+CREATE INDEX IF NOT EXISTS idx_orders_operator_status ON public.orders(operator_id, status);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product ON public.order_items(product_id);
 
 -- For purchase orders and suppliers
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier ON public.purchase_orders(supplier_id);
 
 
 -------------------------------------------------------------------------------
--- ATOMIC DATABASE TRANSACTION FUNCTION: CONFIRM SALE & DEDUCT STOCK
+-- ATOMIC DATABASE TRANSACTION FUNCTION: CONFIRM ORDER & DEDUCT STOCK
 -------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.confirm_sale(p_sale_id UUID)
-RETURNS public.sales AS $$
+CREATE OR REPLACE FUNCTION public.confirm_order(p_order_id UUID)
+RETURNS public.orders AS $$
 DECLARE
-    v_sale public.sales;
+    v_order public.orders;
     v_item RECORD;
 BEGIN
-    -- 1. Retrieve and lock the sale row to prevent concurrent updates
-    SELECT * INTO v_sale FROM public.sales WHERE id = p_sale_id FOR UPDATE;
+    -- 1. Retrieve and lock the order row to prevent concurrent updates
+    SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
     
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Sale with ID % not found.', p_sale_id;
+        RAISE EXCEPTION 'Order with ID % not found.', p_order_id;
     END IF;
     
-    -- 2. Check if the sale is already confirmed
-    IF v_sale.status = 'confirmado' THEN
-        RETURN v_sale;
+    -- 2. Check if the order is already confirmed
+    IF v_order.status = 'confirmado' THEN
+        RETURN v_order;
     END IF;
 
     -- 3. Loop through items and deduct stock
     FOR v_item IN 
-        SELECT product_id, quantity FROM public.sale_items WHERE sale_id = p_sale_id
+        SELECT product_id, quantity FROM public.order_items WHERE order_id = p_order_id
     LOOP
         -- Update product stock, checking that we don't go below 0 (handled by the CHECK constraint on products.stock)
         UPDATE public.products 
@@ -253,13 +252,13 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- 4. Update the sale status to confirmed
-    UPDATE public.sales
+    -- 4. Update the order status to confirmed
+    UPDATE public.orders
     SET status = 'confirmado'
-    WHERE id = p_sale_id
-    RETURNING * INTO v_sale;
+    WHERE id = p_order_id
+    RETURNING * INTO v_order;
 
-    RETURN v_sale;
+    RETURN v_order;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -333,19 +332,19 @@ CREATE POLICY "Admins can manage employees" ON public.employees
 CREATE POLICY "Admins can manage payroll" ON public.payroll
     FOR ALL USING (public.get_current_user_role() = 'admin');
 
--- 9. Sales Policies
-CREATE POLICY "Admins can manage all sales" ON public.sales
+-- 9. Orders Policies
+CREATE POLICY "Admins can manage all orders" ON public.orders
     FOR ALL USING (public.get_current_user_role() = 'admin');
 
-CREATE POLICY "Operators can view and manage their own sales" ON public.sales
+CREATE POLICY "Operators can view and manage their own orders" ON public.orders
     FOR ALL USING (operator_id = auth.uid() OR public.get_current_user_role() = 'admin');
 
--- 10. Sale Items Policies
-CREATE POLICY "Users can view and manage sale items for accessible sales" ON public.sale_items
+-- 10. Order Items Policies
+CREATE POLICY "Users can view and manage order items for accessible orders" ON public.order_items
     FOR ALL USING (
         EXISTS (
-            SELECT 1 FROM public.sales 
-            WHERE id = sale_items.sale_id 
+            SELECT 1 FROM public.orders 
+            WHERE id = order_items.order_id 
               AND (operator_id = auth.uid() OR public.get_current_user_role() = 'admin')
         )
     );

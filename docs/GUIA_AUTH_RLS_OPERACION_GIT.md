@@ -175,7 +175,7 @@ Archivo: `tienda.html`
 Pendiente de siguiente fase:
 
 - Guardar pedido en Supabase antes de abrir WhatsApp.
-- Crear `sales.html` para que admin busque codigo y prepare pedidos.
+- Crear `orders.html` para que admin busque codigo y prepare pedidos.
 
 ## 6. Recomendacion de hosting gratis
 
@@ -261,11 +261,21 @@ git push origin main
 ## 9. Checklist antes de usar en produccion
 
 1. Ejecutar `db/auth_rls_phase1.sql` en Supabase.
-2. Aprobar primer admin en `public.profiles`.
-3. Probar login email/password.
-4. Probar login Google.
-5. Verificar que usuario sin perfil no entra.
-6. Ejecutar:
+2. Ejecutar `db/backlog_phase2_public_orders.sql` en Supabase para tickets publicos, venta por codigo y descuento de stock.
+3. Aprobar primer admin en `public.profiles`.
+4. Probar login email/password.
+5. Probar login Google.
+6. Verificar que usuario sin perfil no entra.
+7. Probar flujo tienda -> WhatsApp -> orders.html:
+
+```text
+tienda.html crea ticket con create_public_order
+orders.html busca codigo
+Registrar Pago llama confirm_order
+confirm_order descuenta stock
+```
+
+8. Ejecutar:
 
 ```powershell
 node D:\Proyectos\PremVidaMacOs-main\scripts\qa-premvida-admin.mjs

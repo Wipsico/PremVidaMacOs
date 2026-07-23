@@ -97,8 +97,8 @@ Construir una suite gratuita para iniciar operaciones sin dominio pago:
 ### Requisitos
 
 - Crear codigo unico de pedido.
-- Insertar registro en `sales`.
-- Insertar items en `sale_items`.
+- Insertar registro en `orders`.
+- Insertar items en `order_items`.
 - Guardar metodo de pago, tipo de entrega y datos de contacto.
 - Redirigir a WhatsApp solo despues del guardado exitoso.
 
@@ -112,7 +112,7 @@ Construir una suite gratuita para iniciar operaciones sin dominio pago:
 
 ### Requisitos
 
-- Crear `sales.html`.
+- Crear `orders.html`.
 - Buscar por codigo.
 - Ver items, pago, delivery/retiro, total y estado.
 - Cambiar estado operativo.

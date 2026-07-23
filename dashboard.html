@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Prem Vida Admin – Dashboard</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <meta name="description" content="Panel principal de métricas operativas, análisis de ventas y alertas de inventario crítico de Prem Vida."/>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -238,17 +239,17 @@
         <!-- CHART + ALERTS ROW -->
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
-            <!-- SVG Sales Chart -->
-            <div class="glass-card p-6 rounded-2xl xl:col-span-2 space-y-4">
-                <div class="flex justify-between items-center border-b border-white/5 pb-4">
-                    <div>
-                        <h4 class="font-bold text-base text-on-surface">Tendencia de Ventas</h4>
-                        <p class="text-xs text-on-surface-variant mt-0.5">Últimos 6 meses · En Bolívares (Bs.)</p>
+<!-- SVG Orders Chart -->
+                <div class="glass-card p-6 rounded-2xl xl:col-span-2 space-y-4">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                        <div>
+                            <h4 class="font-bold text-base text-on-surface">Tendencia de Ventas</h4>
+                            <p class="text-xs text-on-surface-variant mt-0.5">Últimos 6 meses · En Bolívares (Bs.)</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">En Vivo</span>
                     </div>
-                    <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">En Vivo</span>
-                </div>
-                <!-- Chart container — rendered by JS -->
-                <div id="sales-chart" class="w-full" style="height:180px;"></div>
+                    <!-- Chart container — rendered by JS -->
+                    <div id="orders-chart" class="w-full" style="height:180px;"></div>
                 <!-- Month labels -->
                 <div id="chart-labels" class="flex justify-between px-2 text-[10px] text-on-surface-variant font-medium"></div>
             </div>
@@ -339,15 +340,15 @@
      DASHBOARD SCRIPT
 ══════════════════════════════════════════ -->
 <script type="module">
-    import { fetchDashboardStats, renderSalesChart } from './js/core/dashboard-logic.js';
+    import { fetchDashboardStats, renderOrdersChart } from './js/core/dashboard-logic.js';
 
     // ── Auth guard ──────────────────────────────────────────────────
     // ── Supabase init ────────────────────────────────────────────────
     const supabaseUrl = localStorage.getItem('supabaseUrl');
     const supabaseKey = localStorage.getItem('supabaseKey');
-    let sbClient = null;
+    let sbClient = window.supabaseClient || null;
 
-    if (supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
+    if (!sbClient && supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
         try {
             sbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         } catch (e) {
@@ -378,7 +379,7 @@
             const stats = statsResult.value;
             renderStats(stats);
             renderCriticalList(stats.criticalProducts);
-            renderSalesChart('sales-chart', 'chart-labels', stats.chartData);
+            renderOrdersChart('orders-chart', 'chart-labels', stats.chartData);
         } else {
             const err = statsResult.reason;
             console.error('Dashboard load error:', err);
@@ -413,14 +414,26 @@
 
         const { data, error } = await sbClient
             .from('products')
-            .select('id, name, category, expiry_date, price, stock')
-            .not('expiry_date', 'is', null)
+            .select('id, name, category, price, stock, expiry_date')
             .order('expiry_date', { ascending: true })
             .limit(8);
 
         if (error) {
-            el.innerHTML = `<p class="text-xs text-center py-6 text-red-400">Error al cargar sugerencias: ${escHtml(error.message)}</p>`;
-            return;
+            if (String(error.message || '').toLowerCase().includes('column "expiry_date" does not exist') || String(error.message || '').toLowerCase().includes('could not find the column')) {
+                const fallback = await sbClient
+                    .from('products')
+                    .select('id, name, category, price, stock')
+                    .order('stock', { ascending: true })
+                    .limit(8);
+                if (fallback.error) {
+                    el.innerHTML = `<p class="text-xs text-center py-6 text-red-400">Error al cargar sugerencias: ${escHtml(fallback.error.message)}</p>`;
+                    return;
+                }
+                data = fallback.data || [];
+            } else {
+                el.innerHTML = `<p class="text-xs text-center py-6 text-red-400">Error al cargar sugerencias: ${escHtml(error.message)}</p>`;
+                return;
+            }
         }
 
         if (!data || data.length === 0) {
@@ -431,22 +444,28 @@
         el.innerHTML = data.map(p => {
             const precio  = Math.round((p.price || 0) * 100) / 100;
             const remate  = Math.round(precio * 0.70 * 100) / 100;
-            const exp     = new Date(p.expiry_date);
-            const daysLeft = Math.ceil((exp - new Date()) / 86400000);
-
             let badgeClass, badgeLabel;
-            if (daysLeft < 0) {
-                badgeClass = 'bg-red-500/20 text-red-400';
-                badgeLabel = `Vencido (${Math.abs(daysLeft)}d)`;
-            } else if (daysLeft <= 7) {
-                badgeClass = 'bg-amber-500/20 text-amber-300';
-                badgeLabel = `Vence en ${daysLeft}d`;
-            } else if (daysLeft <= 30) {
-                badgeClass = 'bg-blue-500/20 text-blue-300';
-                badgeLabel = `${daysLeft} días`;
+
+            if (p.expiry_date) {
+                const exp = new Date(p.expiry_date);
+                const daysLeft = Math.ceil((exp - new Date()) / 86400000);
+
+                if (daysLeft < 0) {
+                    badgeClass = 'bg-red-500/20 text-red-400';
+                    badgeLabel = `Vencido (${Math.abs(daysLeft)}d)`;
+                } else if (daysLeft <= 7) {
+                    badgeClass = 'bg-amber-500/20 text-amber-300';
+                    badgeLabel = `Vence en ${daysLeft}d`;
+                } else if (daysLeft <= 30) {
+                    badgeClass = 'bg-blue-500/20 text-blue-300';
+                    badgeLabel = `${daysLeft} días`;
+                } else {
+                    badgeClass = 'bg-white/10 text-on-surface-variant';
+                    badgeLabel = `${daysLeft} días`;
+                }
             } else {
                 badgeClass = 'bg-white/10 text-on-surface-variant';
-                badgeLabel = `${daysLeft} días`;
+                badgeLabel = 'No aplica vencimiento';
             }
 
             return `
@@ -719,12 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formVenta = document.getElementById('form-venta');
     if (formVenta) {
         formVenta.addEventListener('submit', async () => {
-            const sb = (typeof window.supabase !== 'undefined')
-                ? window.supabase.createClient(
-                    localStorage.getItem('supabaseUrl'),
-                    localStorage.getItem('supabaseKey')
-                  )
-                : null;
+            const sb = window.supabaseClient || sbClient;
 
             if (!sb) {
                 dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
@@ -746,7 +760,9 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = '<div class="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>';
 
             try {
-                const { error } = await sb.from('sales').insert([{
+                const { error } = await sb
+                .from('orders')
+                .insert([{
                     order_code:     generateOrderCode(),
                     total_amount:   monto,
                     payment_method: metodo,
@@ -774,12 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formGasto = document.getElementById('form-gasto');
     if (formGasto) {
         formGasto.addEventListener('submit', async () => {
-            const sb = (typeof window.supabase !== 'undefined')
-                ? window.supabase.createClient(
-                    localStorage.getItem('supabaseUrl'),
-                    localStorage.getItem('supabaseKey')
-                  )
-                : null;
+            const sb = window.supabaseClient || sbClient;
 
             if (!sb) {
                 dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');

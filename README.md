@@ -123,7 +123,7 @@ const _PROD_KEY = 'TU_ANON_KEY';
 
 ### `js/core/dashboard-logic.js`
 - `fetchDashboardStats(supabase)` — Queries paralelas con fallback automático a datos simulados
-- `renderSalesChart(containerId, labelsId, data)` — Renderizador SVG de gráfico lineal con área degradada y curvas bezier
+- `renderOrdersChart(containerId, labelsId, data)` — Renderizador SVG de gráfico lineal con área degradada y curvas bezier
 
 ---
 
@@ -173,13 +173,17 @@ Ejecutar el archivo `db/schema.sql` en **SQL Editor** de Supabase para crear la 
 | `amount`    | NUMERIC(10,2) | Monto en Bs.                                        |
 | `period`    | TEXT          | Mes/año de referencia                               |
 
-#### `sales`
+#### `orders`
 | Columna        | Tipo          | Descripción                                |
 |----------------|---------------|--------------------------------------------|
 | `id`           | UUID          | PK                                         |
-| `total_amount` | NUMERIC(10,2) | Total de la venta                          |
-| `status`       | TEXT          | `pendiente` / `confirmado` / `cancelado`  |
-| `created_at`   | TIMESTAMPTZ   | Fecha de la venta                          |
+| `order_code`   | TEXT          | Código único del pedido                    |
+| `total_amount` | NUMERIC(12,2) | Total de la orden                          |
+| `payment_method`| TEXT         | Método de pago utilizado                   |
+| `status`       | TEXT          | `draft` / `espera_aprobacion` / `confirmado` |
+| `delivery_type`| TEXT          | `pickup` / `delivery`                      |
+| `operator_id`  | UUID          | FK → profiles del operador que gestionó la orden |
+| `created_at`   | TIMESTAMPTZ   | Fecha de la orden                          |
 
 ---
 

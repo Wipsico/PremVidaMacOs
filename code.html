@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Prem Vida Admin - Gestión de Inventario</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <!-- Tailwind CSS & Plugins -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
@@ -220,6 +221,9 @@
                         <span class="material-symbols-outlined text-sm">upload_file</span> Importar XERO
                     </button>
                     <input type="file" id="csv-file-input" accept=".csv" class="hidden" />
+                    <button id="backup-inventory-btn" class="flex items-center gap-2 px-4 py-2 glass-card rounded-lg hover:bg-white/10 transition-colors text-sm text-on-surface-variant font-medium">
+                        <span class="material-symbols-outlined text-sm">save</span> Guardar Respaldo
+                    </button>
                     
                     <button class="flex items-center gap-2 px-4 py-2 glass-card rounded-lg hover:bg-white/10 transition-colors text-sm">
                         <span class="material-symbols-outlined text-sm">filter_list</span> Filtrar
@@ -430,7 +434,7 @@
     // Claves estandarizadas: supabaseUrl / supabaseKey (minúsculas)
     // para sincronizar con shared.js y todos los demás módulos.
     // ============================================================
-    const _PROD_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
+    const _PROD_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
     const _PROD_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
 
     // Auto-inyectar credenciales si localStorage está vacío (estándar minúsculas)
@@ -618,13 +622,44 @@
             state.products = products;
             state.supplierOrders = orders;
             state.expenses = expenses;
+            saveInventorySnapshot(products);
 
             // Renderizar vistas
             renderAll();
             calculateStats();
         } catch (err) {
             console.error("Error al cargar la data:", err);
-            showToast('error', 'Error al sincronizar datos de las tablas.', 'error');
+            const snapshot = loadInventorySnapshot();
+            if (snapshot?.products?.length) {
+                state.products = snapshot.products;
+                state.supplierOrders = [];
+                state.expenses = [];
+                renderAll();
+                calculateStats();
+                showToast('cloud_done', `Modo respaldo: inventario del ${new Date(snapshot.savedAt).toLocaleString('es-BO')}.`, 'warning');
+            } else {
+                showToast('error', 'Error al sincronizar datos de las tablas.', 'error');
+            }
+        }
+    }
+
+    function saveInventorySnapshot(products = state.products) {
+        try {
+            localStorage.setItem('premvida_inventory_snapshot', JSON.stringify({
+                savedAt: new Date().toISOString(),
+                products: products || []
+            }));
+        } catch (error) {
+            console.warn('No se pudo guardar respaldo de inventario:', error);
+        }
+    }
+
+    function loadInventorySnapshot() {
+        try {
+            return JSON.parse(localStorage.getItem('premvida_inventory_snapshot') || 'null');
+        } catch (error) {
+            console.warn('No se pudo leer respaldo de inventario:', error);
+            return null;
         }
     }
 
@@ -701,6 +736,11 @@
         // Importación de archivo CSV de XERO
         const importBtn = document.getElementById('import-csv-btn');
         const csvFileInput = document.getElementById('csv-file-input');
+
+        document.getElementById('backup-inventory-btn')?.addEventListener('click', () => {
+            saveInventorySnapshot();
+            showToast('save', 'Respaldo local de inventario guardado.', 'success');
+        });
 
         importBtn.addEventListener('click', () => {
             if (!state.supabase) {

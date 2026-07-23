@@ -41,11 +41,11 @@ El proyecto consta de los siguientes archivos en el espacio de trabajo:
    - Tabla `purchase_orders` y `suppliers`: Gestión de compras y directorios de proveedores.
    - Tabla `expenses`: Gastos operativos (categorías: 'alquiler', 'agua', 'luz', 'otros').
    - Triggers automáticos para actualizar marcas de tiempo (`updated_at`).
-   - Función transaccional RPC `confirm_sale`: Realiza el descuento de stock de inventario y confirma la venta en una transacción atómica segura contra condiciones de carrera.
+   - Función transaccional RPC `confirm_order`: Realiza el descuento de stock de inventario y confirma la orden en una transacción atómica segura contra condiciones de carrera.
    - Políticas de seguridad RLS (Row Level Security) para administración.
 3. **`js/core/logic.js`**: Módulo de administración JavaScript (ES Modules) que contiene la lógica de backend:
    - `getEmployeeHistory(supabase, employeeId)`: Historial de nómina del personal.
-   - `changeSaleStatus(supabase, saleId, newStatus)`: Transición de estados de venta con llamada RPC atómica de stock.
+   - `changeOrderStatus(supabase, orderId, newStatus)`: Transición de estados de orden con llamada RPC atómica de stock.
    - `exportToFormat(dataArray, formatType, options)`: Exportador a formatos CSV/Excel y PDF (con fallback de ventana de impresión de alta fidelidad).
    - `fetchProducts(supabase)`, `fetchSupplierOrders(supabase)`, `fetchExpenses(supabase)`: Conexiones relacionales para obtener datos.
    - `uploadProductImage(supabase, file)`: Sube fotos a la carpeta `/products` en el bucket `product-images` de Supabase Storage y devuelve la URL pública.
@@ -190,5 +190,59 @@ Trabajar por fases bajo Spec-Driven Development:
 - Crear flujo de enrolamiento TOTP para administradores (mostrar QR/secreto y verificar factor) en una pantalla protegida.
 - Configurar Google OAuth en Supabase Dashboard con el Client ID/Secret correspondiente.
 - Crear o aprobar el perfil del correo Google del propietario/hermano en `public.profiles` con rol `admin` u `operator`.
-- Continuar Fase 2/Fase 3: corregir `tienda.html`, guardar pedido en Supabase antes de abrir WhatsApp, y luego crear `sales.html`.
 - Guia operativa creada en `docs/GUIA_AUTH_RLS_OPERACION_GIT.md` con pasos SQL, aprobacion de usuarios, uso diario y comandos Git/GitHub.
+
+---
+
+## ACTUALIZACION 2026-07-22 - Ejecucion TASK_BACKLOG Epicas 1, 2, 5 y 6
+
+### Pedido del usuario
+- Leer `TASK_BACKLOG.md` y ejecutar lo pendiente respetando el orden, corrigiendo bugs primero.
+- Mantener `context_prompt.md` actualizado como contingencia.
+
+### Bugs criticos corregidos
+- `js/core/shared.js` estaba roto por declaraciones duplicadas (`const pathname`, `PUBLIC_PAGES`, `supabaseUrl`) y comparaba contra una URL Supabase vieja. Se reescribio limpio.
+- URL oficial normalizada en `shared.js`, `login.html` y `tienda.html`: `https://jifgfbcjkqzffvtxxktg.supabase.co`.
+- `tienda.html` tenia como URL una parte de la key (`qupB57...supabase.co`), corregido.
+
+### Backlog ejecutado en esta fase
+- Epica 1:
+  - Idioma admin ya queda local por dispositivo con `localStorage.premvida_lang` y sync opcional a `profiles.preferred_language`.
+  - Se agrego SQL incremental para asegurar `products.expiry_date`.
+- Epica 2:
+  - `orders.html` ahora tiene modal de detalle transaccional real para órdenes con `order_items`.
+  - Se repusieron tabs `[Todas] [Heartbeef] [Green Leaf] [Otros]`, KPIs y modal `Nueva Orden`.
+- Epica 5:
+  - `code.html` guarda snapshot local de inventario en cada carga exitosa.
+  - Si falla Supabase, usa el ultimo respaldo local y avisa con toast.
+  - Agregado boton `Guardar Respaldo`.
+- Epica 6:
+  - `tienda.html` genera codigo unico de carrito y usa un RPC público para crear el pedido antes de abrir WhatsApp.
+  - Mensaje WhatsApp incluye: `Hola! Este es el ticket de mi orden por favor: CODIGO`.
+  - `orders.html` tiene seccion `Venta por Codigo`: buscar ticket, ver resumen, registrar pago y llamar RPC `confirm_order` para descontar stock.
+
+### SQL nuevo obligatorio para esta fase
+- Archivo creado: `db/backlog_phase2_public_orders.sql`.
+- Ejecutar en Supabase SQL Editor despues de `db/auth_rls_phase1.sql`.
+- Incluye:
+  - `ALTER TABLE products ADD COLUMN IF NOT EXISTS expiry_date DATE`.
+  - Columnas `customer_name`, `customer_phone`, `delivery_notes` en `orders`.
+  - RPC publico `create_public_order(...)` para que `tienda.html` cree tickets sin exponer inserts directos.
+  - RPC `confirm_order(uuid)` con chequeo de stock y descuento atomico.
+  - Politicas RLS de lectura/update para admins/operators en ventas.
+
+### Verificacion
+- `node scripts/qa-premvida-admin.mjs` => `88/88 checks OK`.
+- `node --check js/core/shared.js` => OK.
+- `node --check js/core/orders-logic.js` => OK.
+
+### Pendiente despues de esta fase
+- Ejecutar el SQL en Supabase real y hacer prueba manual end-to-end con un producto real:
+  1. Abrir `tienda.html`.
+  2. Agregar productos al carrito.
+  3. Confirmar pedido.
+  4. Verificar que se cree `orders.status = espera_aprobacion`.
+  5. Abrir `orders.html`, buscar el codigo y registrar pago.
+  6. Confirmar que el stock baja en `products`.
+- Implementar enrolamiento TOTP/Google Authenticator para admins.
+- Epicas 3, 4 y 7 quedan pendientes: empleados/time-clock/gastos recurrentes, activos/depreciacion, ofertas/reservas/feedback ecommerce.

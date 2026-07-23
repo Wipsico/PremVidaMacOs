@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Prem Vida · Tienda Vegana | Caracas, Venezuela</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <meta name="description" content="Tienda online de productos veganos premium en Venezuela. Delivery y retiro en tienda. Paga en Bs., Pago Móvil, QR o efectivo."/>
 
     <!-- Tailwind CSS -->
@@ -72,12 +73,12 @@
 <header id="site-header" class="sticky top-0 z-50 glass border-b border-white/10 transition-all">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <a href="#" class="flex items-center gap-3 shrink-0">
-            <div class="w-9 h-9 bg-primary-dark rounded-xl flex items-center justify-center shadow-lg shadow-primary-dark/30">
-                <span class="material-symbols-outlined text-white" style="font-variation-settings:'FILL' 1; font-size:20px;">eco</span>
+            <div class="w-11 h-11 bg-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary-dark/40">
+                <span class="material-symbols-outlined text-white" style="font-variation-settings:'FILL' 1; font-size:22px;">eco</span>
             </div>
-            <div class="hidden sm:block">
+            <div class="flex flex-col">
                 <p class="font-bold text-on-surface leading-none text-sm">Prem Vida</p>
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Tienda Vegana</p>
+                <p class="text-[10px] text-primary uppercase tracking-widest">Tienda Vegana</p>
             </div>
         </a>
         <div class="flex-1 max-w-sm hidden md:block">
@@ -244,7 +245,7 @@
     // ==========================================
     // 1. CREDENCIALES OFICIALES INYECTADAS
     // ==========================================
-    const SUPABASE_URL      = 'https://qupB57fCBXiY5fazSqAqrA.supabase.co';
+    const SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
     const WHATSAPP_NUMBER   = '59170327181';
     const DELIVERY_FEE      = 5.00; 
@@ -630,6 +631,125 @@ Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
         }
     }
 
+    async function dispatchOrderWithTicket() {
+        if (state.cart.length === 0) {
+            showToast('error', 'El carrito esta vacio.', 'error');
+            return;
+        }
+
+        const confirmBtn = document.getElementById('confirm-order-btn');
+        const originalHtml = confirmBtn?.innerHTML;
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span>Generando ticket...';
+        }
+
+        try {
+            const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'No especificado';
+            const deliveryOption = state.deliveryType;
+            const zone = document.getElementById('delivery-zone')?.value?.trim() || '';
+            const subtotal = state.cart.reduce((sum, item) => sum + Math.round(item.price * item.qty * 100) / 100, 0);
+            const fee = deliveryOption === 'home' ? DELIVERY_FEE : 0;
+            const total = Math.round((subtotal + fee) * 100) / 100;
+            const orderCode = generateOrderCode();
+            const ticketItems = state.cart.map((item) => ({
+                product_id: item.id,
+                name: item.name,
+                quantity: item.qty,
+                unit_price: Math.round(Number(item.price || 0) * 100) / 100,
+            }));
+
+            if (supabaseClient) {
+                await submitOrderToDatabase({
+                    orderCode,
+                    paymentMethod,
+                    deliveryOption,
+                    zone,
+                    total,
+                    ticketItems,
+                });
+            }
+
+            const itemsText = state.cart
+                .map((item) => `- ${item.name} (x${item.qty}) - ${CURRENCY} ${(Math.round(item.price * item.qty * 100) / 100).toFixed(2)}`)
+                .join('\n');
+            const deliveryText = deliveryOption === 'home'
+                ? `Delivery a domicilio${zone ? ` - ${zone}` : ''} (+${CURRENCY} ${fee.toFixed(2)})`
+                : 'Recojo en tienda';
+            const message =
+`Hola! Este es el ticket de mi orden por favor: ${orderCode}
+
+Codigo: ${orderCode}
+Pago: ${paymentMethod}
+Entrega: ${deliveryText}
+
+Productos:
+${itemsText}
+
+Subtotal: ${CURRENCY} ${subtotal.toFixed(2)}${fee > 0 ? `\nEnvio: ${CURRENCY} ${fee.toFixed(2)}` : ''}
+TOTAL: ${CURRENCY} ${total.toFixed(2)}`;
+
+            showToast('check_circle', `Ticket ${orderCode} registrado. Abriendo WhatsApp...`, 'success');
+            window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+        } catch (error) {
+            console.error('Error creando ticket:', error);
+            showToast('error', `No se pudo registrar el ticket: ${error.message || error}`, 'error');
+        } finally {
+            if (confirmBtn) {
+                confirmBtn.disabled = state.cart.length === 0;
+                confirmBtn.innerHTML = originalHtml;
+            }
+        }
+    }
+
+    function generateOrderCode() {
+        return Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+    }
+
+    async function submitOrderToDatabase({ orderCode, paymentMethod, deliveryOption, zone, total, ticketItems }) {
+        if (!supabaseClient) {
+            throw new Error('Supabase no está disponible.');
+        }
+
+        const orderPayload = {
+            order_code: orderCode,
+            customer_name: 'Cliente WhatsApp',
+            customer_phone: WHATSAPP_NUMBER,
+            delivery_type: deliveryOption,
+            delivery_notes: zone,
+            payment_method: paymentMethod,
+            total_amount: total,
+            status: 'espera_aprobacion',
+        };
+
+        const itemsPayload = ticketItems.map((item) => ({
+            order_id: null,
+            product_id: item.product_id || item.id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+        }));
+
+        try {
+            const { data: order, error: orderError } = await supabaseClient
+                .from('orders')
+                .insert([orderPayload])
+                .select('id')
+                .single();
+
+            if (orderError) throw orderError;
+
+            if (itemsPayload.length > 0) {
+                itemsPayload.forEach((item) => { item.order_id = order.id; delete item.sale_id; });
+                const { error: itemsError } = await supabaseClient.from('order_items').insert(itemsPayload);
+                if (itemsError) throw itemsError;
+            }
+
+            return order;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     function subscribeToRealtimeStock() {
         if (!supabaseClient) return;
         supabaseClient
@@ -673,7 +793,7 @@ Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
 
     function setupUIListeners() {
         document.getElementById('open-cart-btn')?.addEventListener('click', openCart);
-        document.getElementById('confirm-order-btn')?.addEventListener('click', dispatchOrderToWhatsApp);
+        document.getElementById('confirm-order-btn')?.addEventListener('click', dispatchOrderWithTicket);
         document.getElementById('search-input')?.addEventListener('input', (e) => { state.searchTerm = e.target.value.trim(); renderProducts(); });
         document.querySelectorAll('input[name="delivery"]').forEach(r => {
             r.addEventListener('change', (e) => {

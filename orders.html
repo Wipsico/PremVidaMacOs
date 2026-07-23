@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Prem Vida Admin - Gestión de Órdenes</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,6 +22,49 @@
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             border-left: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        @media print {
+            html, body {
+                background: #fff;
+                color: #000;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #transaction-modal,
+            #transaction-modal * {
+                visibility: visible;
+            }
+            #transaction-modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background: transparent;
+                padding: 0;
+            }
+            #transaction-modal .glass-card {
+                background: #fff !important;
+                color: #000 !important;
+                border: none !important;
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+            #transaction-modal .glass-card * {
+                color: #000 !important;
+            }
+            .no-print,
+            aside,
+            nav,
+            #btn-export-orders,
+            #btn-print-summary,
+            #modal-new-order,
+            .order-tab,
+            .no-print-me {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -52,18 +96,75 @@
         <!-- Encabezado de la Sección -->
         <div class="flex justify-between items-center mb-8">
             <div>
-                <h1 class="text-3xl font-bold text-white tracking-tight">Order & Sales Management</h1>
-                <p class="text-zinc-400 text-sm mt-1">Administra transacciones de clientes y facturas de almacén.</p>
+                <h1 class="text-3xl font-bold text-white tracking-tight">Gestión de Órdenes</h1>
+                <p class="text-zinc-400 text-sm mt-1">Administra transacciones de clientes y tickets generados desde la tienda.</p>
             </div>
             <div class="flex gap-3">
-                <button id="btn-export-sales" class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition border border-zinc-700">
-                    <span class="material-symbols-outlined text-sm">download</span> Export Sales
+                <button id="btn-export-orders" class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition border border-zinc-700">
+                    <span class="material-symbols-outlined text-sm">download</span> Exportar Órdenes
                 </button>
                 <button id="btn-print-summary" class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 px-4 py-2.5 rounded-xl text-sm font-semibold transition">
-                    <span class="material-symbols-outlined text-sm">print</span> Print Bills
+                    <span class="material-symbols-outlined text-sm">print</span> Imprimir
                 </button>
             </div>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="glass-card rounded-2xl border border-zinc-800 p-5">
+                <p class="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Ordenes Totales</p>
+                <h3 id="kpi-total-orders" class="text-3xl font-bold text-white mt-2">0</h3>
+            </div>
+            <div class="glass-card rounded-2xl border border-zinc-800 p-5">
+                <p class="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Pendientes</p>
+                <h3 id="kpi-pending-orders" class="text-3xl font-bold text-amber-400 mt-2">0</h3>
+            </div>
+            <div class="glass-card rounded-2xl border border-zinc-800 p-5">
+                <p class="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Marca Lider</p>
+                <h3 id="kpi-leader-brand" class="text-2xl font-bold text-emerald-400 mt-2">-</h3>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div class="flex flex-wrap gap-2" id="orders-filter-actions">
+                <button id="tab-todas" data-brand="todas" onclick="window.switchTab('todas')" class="order-tab px-4 py-2 rounded-xl bg-emerald-500 text-zinc-950 text-sm font-bold">Todas</button>
+                <button id="tab-heartbeef" data-brand="heartbeef" onclick="window.switchTab('heartbeef')" class="order-tab px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold border border-zinc-700">Heartbeef</button>
+                <button id="tab-green-leaf" data-brand="green-leaf" onclick="window.switchTab('green-leaf')" class="order-tab px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold border border-zinc-700">Green Leaf</button>
+                <button id="tab-otros" data-brand="otros" onclick="window.switchTab('otros')" class="order-tab px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold border border-zinc-700">Otros</button>
+            </div>
+            <div class="flex gap-2">
+                <button id="btn-add-brand" class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition border border-zinc-700">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    + Añadir Empresa
+                </button>
+                <button id="btn-new-order" class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition border border-zinc-700">
+                    <span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+                    Nueva Orden
+                </button>
+            </div>
+        </div>
+
+        <section class="glass-card rounded-2xl border border-emerald-500/20 p-6 mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+                <div class="flex-1">
+                    <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-2">Venta por Codigo</p>
+                    <h2 class="text-xl font-bold text-white">Buscar ticket generado desde tienda.html</h2>
+                    <p class="text-sm text-zinc-400 mt-1">Ingresa el codigo que llega por WhatsApp para revisar items, metodo de pago y confirmar stock.</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 lg:w-[520px]">
+                    <input id="order-code-input" maxlength="12" placeholder="Ej: 1X9NNF"
+                           class="flex-1 bg-zinc-950/70 border border-zinc-700 rounded-xl px-4 py-3 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"/>
+                    <button id="btn-search-order-code" class="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition border border-zinc-700">
+                        <span class="material-symbols-outlined text-lg">search</span>
+                        Buscar
+                    </button>
+                    <button id="btn-confirm-order-code" disabled class="flex items-center justify-center gap-2 bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-600 text-zinc-950 px-5 py-3 rounded-xl text-sm font-bold transition">
+                        <span class="material-symbols-outlined text-lg">payments</span>
+                        Registrar Pago
+                    </button>
+                </div>
+            </div>
+            <div id="order-code-result" class="hidden mt-5 rounded-xl border border-zinc-800 bg-zinc-950/50 p-4 text-sm"></div>
+        </section>
 
         <!-- Tabla Glassmorphic principal -->
         <div class="glass-card rounded-2xl overflow-hidden border border-zinc-800">
@@ -97,8 +198,88 @@
         </div>
     </main>
 
+    <div id="modal-new-order" class="fixed inset-0 z-[95] hidden items-center justify-center bg-black/75 backdrop-blur-sm px-4">
+        <div class="glass-card w-full max-w-md rounded-2xl border border-zinc-700 overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-zinc-800">
+                <h3 class="text-lg font-bold text-white">Nueva Orden Manual</h3>
+                <button type="button" id="btn-close-new-order" class="p-2 rounded-lg hover:bg-white/10 transition">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-new-order" class="p-6 space-y-4">
+                <input id="order-client-name" required placeholder="Cliente / proveedor" class="w-full bg-zinc-950/70 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                <input id="order-total-amount" required min="0" step="0.01" type="number" placeholder="Monto Bs. 0.00" class="w-full bg-zinc-950/70 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                <select id="order-brand" class="w-full bg-zinc-950/70 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="heartbeef">Heartbeef</option>
+                    <option value="green-leaf">Green Leaf</option>
+                    <option value="otros">Otros</option>
+                </select>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" id="btn-cancel-new-order" class="flex-1 py-3 rounded-xl border border-zinc-700 text-sm font-semibold hover:bg-white/5">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-emerald-500 text-zinc-950 text-sm font-bold">Guardar Orden</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="transaction-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/75 backdrop-blur-sm px-4">
+        <div class="glass-card w-full max-w-3xl rounded-2xl border border-zinc-700 overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-zinc-800">
+                <h3 id="transaction-modal-title" class="text-lg font-bold text-white">Detalle de Transaccion</h3>
+                <button id="btn-close-transaction-modal" class="p-2 rounded-lg hover:bg-white/10 transition">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="transaction-modal-body" class="p-6 max-h-[80vh] overflow-y-auto text-sm text-zinc-300"></div>
+        </div>
+    </div>
+
     <!-- Cargamos primero la librería de Supabase, luego el módulo central y su lógica -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let activeOrderTab = 'todas';
+
+        function applyTabFilter(tab = activeOrderTab) {
+            activeOrderTab = tab;
+            document.querySelectorAll('.order-tab').forEach((btn) => {
+                const active = btn.dataset.brand === tab;
+                btn.className = active
+                    ? 'order-tab px-4 py-2 rounded-xl bg-emerald-500 text-zinc-950 text-sm font-bold'
+                    : 'order-tab px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold border border-zinc-700';
+            });
+            document.dispatchEvent(new CustomEvent('pv:orders-tab-change', { detail: { tab } }));
+        }
+
+        window.switchTab = function switchTab(tab) {
+            applyTabFilter(tab);
+        };
+
+        function openModal() {
+            const modal = document.getElementById('modal-new-order');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-new-order');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleSubmitOrder(event) {
+            event.preventDefault();
+            const rawAmount = parseFloat(document.getElementById('order-total-amount').value) || 0;
+            const roundedAmount = Math.round(rawAmount * 100) / 100;
+            window.showToast?.('receipt_long', `Orden manual registrada por Bs. ${roundedAmount.toFixed(2)}.`, 'success');
+            closeModal();
+            event.target.reset();
+        }
+
+        document.getElementById('btn-new-order').addEventListener('click', openModal);
+        document.getElementById('form-new-order').addEventListener('submit', handleSubmitOrder);
+        document.getElementById('btn-close-new-order').addEventListener('click', closeModal);
+        document.getElementById('btn-cancel-new-order').addEventListener('click', closeModal);
+    </script>
     <script type="module" src="js/core/shared.js"></script>
     <script type="module" src="js/core/orders-logic.js"></script>
 </body>

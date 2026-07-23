@@ -4,6 +4,9 @@
  * Queries Supabase for real operational stats and renders
  * a premium SVG line chart. Falls back to curated mock data
  * automatically when tables are empty or the server is offline.
+ *
+ * NOTE: This module now directly queries `orders` and no longer relies
+ * on any legacy schema for main dashboard statistics.
  */
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -36,25 +39,23 @@ export async function fetchDashboardStats(supabase) {
     }
 
     try {
-        // Run all three queries in parallel for performance
-        const [salesRes, productsRes] = await Promise.all([
-            supabase.from('sales').select('total_amount, status'),
-            supabase.from('products').select('id, name, price, stock, category, is_active'),
-        ]);
+        // Query orders table directly; legacy sales schema is no longer used.
+        const ordersRes = await supabase.from('orders').select('total_amount, status');
+        const productsRes = await supabase.from('products').select('id, name, price, stock, category, is_active');
 
-        if (salesRes.error) throw salesRes.error;
+        if (ordersRes.error) throw ordersRes.error;
         if (productsRes.error) throw productsRes.error;
 
-        const sales    = salesRes.data    || [];
+        const orders   = ordersRes.data   || [];
         const products = productsRes.data || [];
 
-        // ── Revenue: sum of confirmed sales ──────────────────────────
-        const revenue = sales
-            .filter(s => s.status === 'confirmado')
-            .reduce((acc, s) => acc + parseFloat(s.total_amount || 0), 0);
+        // ── Revenue: sum of confirmed orders ─────────────────────────
+        const revenue = orders
+            .filter(o => String(o.status || '').toLowerCase() === 'confirmado')
+            .reduce((acc, o) => acc + parseFloat(o.total_amount || 0), 0);
 
         // ── Orders count ─────────────────────────────────────────────
-        const ordersCount = sales.length;
+        const ordersCount = orders.length;
 
         // ── Critical stock: < 5 units, active products ───────────────
         const criticalProducts = products.filter(p => p.is_active && p.stock < 5);
@@ -117,7 +118,7 @@ function buildChartData(totalRevenue) {
  * @param {string}   labelsId     – ID of the month-labels element.
  * @param {number[]} data         – Array of 6 numeric data points.
  */
-export function renderSalesChart(containerId, labelsId, data) {
+export function renderOrdersChart(containerId, labelsId, data) {
     const container = document.getElementById(containerId);
     if (!container) return;
 

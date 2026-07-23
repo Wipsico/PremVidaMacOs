@@ -42,7 +42,7 @@
 ### 📌 EPICA 2: Módulo de Historial Operativo (`orders.html`) y Detalle de Transacciones
 
 #### 2.1 Inspección y Modales de Detalle
-* **Problema:** En el Historial Operativo se muestran Bills (Gastos) y Sales (Ventas) pero no permite ver el desglose o ítems internos.
+* **Problema:** En el Historial Operativo se muestran Bills (Gastos) y Orders (Órdenes) pero no permite ver el desglose o ítems internos.
 * **Solución SDD:**
   * Implementar un **Modal de Inspección Detallada** al hacer clic en el icono de ojo (`👁️`) de cada transacción.
   * Mostrar productos/gastos incluidos, cantidades, precio unitario y desglose exacto que justifica el **Monto Total**.
@@ -122,7 +122,7 @@
 - **Descripción:** Las peticiones HTTP REST y las conexiones WebSocket de Realtime hacia Supabase estaban fallando con el error `net::ERR_NAME_NOT_RESOLVED` y `Error canal public:products: transport failure`.
 - **Causa Raíz:** Se detectaron errores tipográficos (caracteres extra como `f` o `g`) en las constantes de URL de producción fallback (`_PROD_URL` y `FALLBACK_URL`) dentro de `code.html` y `js/core/shared.js`, ocasionando que la URL guardada en `localStorage` no resolviera a nivel de DNS.
 - **Acción Realizada / Solución:**
-  - Standardización de la URL oficial de Supabase a: `https://jifgbcjkqzffvtxxktg.supabase.co`.
+  - Standardización de la URL oficial de Supabase a: `https://jifgfbcjkqzffvtxxktg.supabase.co`.
   - Corrección de la constante `_PROD_URL` en `code.html` (línea ~264) y sincronización con `js/core/shared.js`.
   - Limpieza de credenciales obsoletas/corruptas en `localStorage` (`localStorage.clear()`).
 - **Estado:** ✅ Completado / Resuelto.

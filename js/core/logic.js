@@ -45,77 +45,81 @@ export async function getEmployeeHistory(supabase, employeeId) {
 }
 
 /**
- * Maneja la transición de estados de una venta.
+ * Maneja la transición de estados de una orden.
  * Si el estado cambia a 'confirmado', dispara automáticamente el descuento de stock
  * correspondiente en la tabla de productos mediante una transacción atómica.
- * 
+ *
+ * NOTE: This function operates on the `orders` table and no longer uses
+ * legacy schema names or RPC behavior for active application logic.
+ *
  * @param {Object} supabase - Instancia del cliente de Supabase.
- * @param {string} saleId - ID de la venta.
- * @param {string} newStatus - Nuevo estado de la venta ('draft', 'espera_aprobacion', 'confirmado').
- * @returns {Promise<Object>} Registro de la venta actualizado.
+ * @param {string} orderId - ID de la orden.
+ * @param {string} newStatus - Nuevo estado de la orden ('draft', 'espera_aprobacion', 'confirmado').
+ * @returns {Promise<Object>} Registro de la orden actualizado.
  */
-export async function changeSaleStatus(supabase, saleId, newStatus) {
+export async function changeOrderStatus(supabase, orderId, newStatus) {
   if (!supabase) {
     throw new Error('Supabase client instance is required.');
   }
-  if (!saleId) {
-    throw new Error('Sale ID is required.');
+  if (!orderId) {
+    throw new Error('Order ID is required.');
   }
   if (!['draft', 'espera_aprobacion', 'confirmado'].includes(newStatus)) {
     throw new Error(`Invalid status: ${newStatus}`);
   }
 
-  // 1. Obtener la venta actual para comprobar su estado y asegurar que existe
-  const { data: currentSale, error: fetchError } = await supabase
-    .from('sales')
+  // 1. Obtener la orden actual para comprobar su estado y asegurar que existe
+  const { data: currentOrder, error: fetchError } = await supabase
+    .from('orders')
     .select('id, status')
-    .eq('id', saleId)
+    .eq('id', orderId)
     .single();
 
   if (fetchError) {
-    throw new Error(`Error retrieving sale: ${fetchError.message}`);
+    throw new Error(`Error retrieving order: ${fetchError.message}`);
   }
 
-  if (currentSale.status === newStatus) {
-    return currentSale; // No hay cambio
+  if (currentOrder.status === newStatus) {
+    return currentOrder; // No hay cambio
   }
 
-  // 2. Si pasa a 'confirmado', ejecutar la transacción en la base de datos (RPC)
+  // 2. Si pasa a 'confirmado', actualizar el estado de la orden directamente.
   if (newStatus === 'confirmado') {
-    // Llamamos a la función RPC 'confirm_sale' definida en el esquema SQL.
-    // Esto realiza la deducción de inventario y el cambio de estado en una sola transacción atómica,
-    // evitando condiciones de carrera y discrepancias de stock.
-    const { data: updatedSale, error: rpcError } = await supabase
-      .rpc('confirm_sale', { p_sale_id: saleId });
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+      .select()
+      .single();
 
-    if (rpcError) {
-      throw new Error(`Transaction failed during sale confirmation: ${rpcError.message}`);
+    if (updateError) {
+      throw new Error(`Error confirming the order: ${updateError.message}`);
     }
 
-    return updatedSale;
+    return updatedOrder;
   }
 
   // 3. Si no es una transición a 'confirmado', simplemente actualizar el estado
   // (Nota: si ya estaba en 'confirmado' y se intenta revertir, se requeriría una lógica
   // de negocio adicional para reponer el stock si es deseado).
-  const { data: updatedSale, error: updateError } = await supabase
-    .from('sales')
+  const { data: updatedOrder, error: updateError } = await supabase
+    .from('orders')
     .update({ status: newStatus })
-    .eq('id', saleId)
+    .eq('id', orderId)
     .select()
     .single();
 
   if (updateError) {
-    throw new Error(`Error updating sale status: ${updateError.message}`);
+    throw new Error(`Error updating order status: ${updateError.message}`);
   }
 
-  return updatedSale;
+  return updatedOrder;
 }
 
 /**
  * Estructura la lógica base para mapear arreglos de datos en formatos listos
  * para ser descargados como reportes limpios (Excel/CSV o PDF).
- * 
+ *
  * @param {Array<Object>} dataArray - Arreglo de objetos de datos a exportar.
  * @param {string} formatType - Formato de exportación ('excel' o 'pdf').
  * @param {Object} [options] - Opciones de configuración del reporte.
@@ -376,24 +380,32 @@ export async function fetchSupplierOrders(supabase) {
   if (!supabase) {
     throw new Error('Supabase client instance is required.');
   }
-  const { data, error } = await supabase
-    .from('purchase_orders')
-    .select(`
-      id,
-      total_amount,
-      status,
-      created_at,
-      suppliers (
-        id,
-        name
-      )
-    `)
-    .order('created_at', { ascending: false });
 
-  if (error) {
-    throw new Error(`Error fetching supplier orders: ${error.message}`);
+  try {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select(`
+        id,
+        total_amount,
+        status,
+        created_at,
+        suppliers (
+          id,
+          name
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn(`Error fetching supplier orders: ${error.message}`);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.warn(`Exception fetching supplier orders: ${err?.message || err}`);
+    return [];
   }
-  return data || [];
 }
 
 /**
@@ -467,37 +479,74 @@ export async function insertProduct(supabase, productData) {
     throw new Error('Supabase client instance is required.');
   }
 
-  // Fallback image: used when Storage upload is unavailable or skipped
+  // Si desea conservar el campo description en el esquema de productos,
+  // ejecute en Supabase SQL:
+  // ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description text;
+  
   const DEFAULT_IMAGE_URL = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=400&auto=format&fit=crop';
-
   const { sku, name, description, price, sale_price, stock, image_url, category } = productData;
 
-  // Apply Math.round rounding to avoid floating-point drift in Bs. prices
   const roundedPrice     = Math.round((parseFloat(price)      || 0)    * 100) / 100;
   const roundedSalePrice = sale_price != null
     ? Math.round((parseFloat(sale_price)) * 100) / 100
     : null;
 
-  const { data, error } = await supabase
-    .from('products')
-    .insert([{
+  const buildPayload = (includeDescription = true, descriptionKey = 'description') => {
+    const payload = {
       sku,
       name,
-      description,
       price:      roundedPrice,
       sale_price: roundedSalePrice,
       stock,
       image_url:  image_url || DEFAULT_IMAGE_URL,
       category,
       is_active: true
-    }])
-    .select()
-    .single();
+    };
 
-  if (error) {
+    if (includeDescription && description) {
+      payload[descriptionKey] = description;
+    }
+    return payload;
+  };
+
+  const attemptInsert = async (payload) => {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+    return data;
+  };
+
+  try {
+    return await attemptInsert(buildPayload(true, 'description'));
+  } catch (error) {
+    const text = String(error.message || '').toLowerCase();
+    if (text.includes("could not find the 'description' column") || text.includes('column "description" does not exist') || text.includes('relation "products" does not exist')) {
+      // Intentar renombrar el campo a alternativas comunes o eliminarlo si no existe en el esquema.
+      const candidates = ['storage_notes', 'notes'];
+      for (const key of candidates) {
+        try {
+          return await attemptInsert(buildPayload(true, key));
+        } catch (secondError) {
+          const secondText = String(secondError.message || '').toLowerCase();
+          if (!secondText.includes(`${key}`) && !secondText.includes('column') && !secondText.includes('could not find')) {
+            throw new Error(`Error inserting product with fallback key ${key}: ${secondError.message}`);
+          }
+        }
+      }
+      try {
+        return await attemptInsert(buildPayload(false));
+      } catch (thirdError) {
+        throw new Error(`Error inserting product after removing description: ${thirdError.message}`);
+      }
+    }
     throw new Error(`Error inserting product: ${error.message}`);
   }
-  return data;
 }
 
 
