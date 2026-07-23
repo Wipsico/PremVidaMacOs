@@ -14,7 +14,7 @@ Este archivo sirve como una medida de seguridad crítica para el proyecto de **P
 ## Prompt de Alineación Directa (Copiar y Pegar al Asistente)
 
 ```text
-Hola, Asistente de Programación. Estoy desarrollando el ecosistema digital de **Prem Vida**, el cual se compone de un panel de administración de inventario y logística y de un flujo de E-commerce cliente para la venta de productos veganos en Venezuela (moneda en bolívares **Bs.**). El diseño visual fue creado por Stitch con una estética Glassmorphic premium, y Antigravity 2.0 desarrolló toda la lógica de datos integrada con Supabase.
+Hola, Asistente de Programación. Estoy desarrollando el ecosistema digital de **Prem Vida**, el cual se compone de un panel de administración de inventario y logística y de un flujo de E-commerce cliente para la venta de productos veganos en Bolivia (moneda en bolivianos **Bs.**). El diseño visual fue creado por Stitch con una estética Glassmorphic premium, y Antigravity 2.0 desarrolló toda la lógica de datos integrada con Supabase.
 
 Por favor, lee con atención el siguiente resumen del estado actual del proyecto, la arquitectura técnica, la estructura de archivos y el motor de funciones para que te alinees de inmediato y me ayudes a continuar con el desarrollo sin fisuras:
 
@@ -54,7 +54,7 @@ El proyecto consta de los siguientes archivos en el espacio de trabajo:
 4. **`js/core/client-logic.js`**: Módulo de e-commerce JavaScript (ES Modules) que contiene la lógica para el cliente de la tienda online:
    - `calculateClientTotal(cartItems, deliveryType, deliveryFee)`: Calcula el total de la compra en bolívares, sumando el costo de entrega solo si el tipo es `'envio'`.
    - `generateOrderCode()`: Retorna un código único aleatorio de 5 caracteres alfanuméricos para identificar el pedido.
-   - `getGoogleMapsLink()`: Retorna la URL de la ubicación física de la tienda Prem Vida en Caracas.
+   - `getGoogleMapsLink()`: Retorna la URL de ubicación física/configurable de la tienda Prem Vida.
    - `generateWhatsAppLink(cartItems, orderCode, deliveryType, paymentMethod, deliveryFee, total, phoneNumber)`: Genera el enlace de WhatsApp codificado con el formato del mensaje del pedido estructurado para WhatsApp Business.
    - `validateCartStock(supabase, cartItems)`: Consulta a Supabase en una sola consulta relacional (`.in()`) para validar que cada producto en el carrito del cliente tenga existencias suficientes disponibles antes de proceder al pago.
 5. **`code.html`**: El panel de administración interactivo de una sola página (SPA). Características:
@@ -246,3 +246,83 @@ Trabajar por fases bajo Spec-Driven Development:
   6. Confirmar que el stock baja en `products`.
 - Implementar enrolamiento TOTP/Google Authenticator para admins.
 - Epicas 3, 4 y 7 quedan pendientes: empleados/time-clock/gastos recurrentes, activos/depreciacion, ofertas/reservas/feedback ecommerce.
+## ACTUALIZACION 2026-07-22 - Analisis de `TASK_BACKLOG.md` y plan por fases para `tienda.html`
+
+### Pedido actual del usuario
+- Analizar `TASK_BACKLOG.md` antes de seguir tocando la tienda.
+- Mantener `context_prompt.md` actualizado como plan de contingencia por si se agota la cuota o debe continuar otro modelo de IA.
+- Documentar que se esta pidiendo, que se hara y que se pudo lograr en esta pasada.
+- Trabajar `tienda.html` y el flujo ecommerce por fases, sin mezclar todo en una sola entrega.
+
+### Lectura ejecutiva del backlog
+- El backlog ya marca como resuelto el core de Supabase, Google OAuth, control admin, health check/banner y motor de alertas.
+- Las prioridades nuevas no son solo visuales: hay riesgos de datos y operacion que deben resolverse antes de vender en serio.
+- Hay una contradiccion historica importante en URLs de Supabase dentro del backlog/contexto: aparecen variantes distintas (`jiftqbcjkqztfvtxxktq`, `jifgbcjkqzffvtxxktg` y menciones de URL sospechosa en `tienda.html`). Antes de conectar ecommerce se debe auditar y unificar la URL oficial real.
+- La tienda debe permanecer publica, pero los flujos de aprobacion, descuento de stock, usuarios, nomina, configuracion y auditoria deben quedar detras de Supabase Auth + `profiles`.
+- La moneda operativa vigente es Bolivia, siempre con `Bs.` y redondeo `Math.round(val * 100) / 100`.
+
+### Orden recomendado de fases desde este punto
+1. **Fase A - Estabilizacion minima antes de tienda**
+   - Confirmar URL Supabase oficial y eliminar constantes contradictorias.
+   - Confirmar que `products.expiry_date` existe o agregar SQL incremental.
+   - Revisar consultas de `code.html`, `js/core/logic.js`, `js/core/dashboard-logic.js` y cualquier modulo de inventario para tolerar campos faltantes.
+   - Mantener QA automatizado actualizado.
+
+2. **Fase B - Tienda publica conectada a inventario**
+   - Revisar `tienda.html` actual y `js/core/client-logic.js`.
+   - Quitar credenciales hardcodeadas peligrosas si existen.
+   - Cargar productos activos desde Supabase con fallback/cache si la red falla.
+   - Mostrar stock disponible, precio en `Bs.`, carrito y validacion de stock antes de finalizar.
+   - Para productos con `stock = 0`, cambiar CTA a reserva/notificacion.
+
+3. **Fase C - Pedido con codigo antes de WhatsApp**
+   - Crear/usar tablas para pedidos publicos y items de pedido.
+   - Generar codigo unico de venta desde `tienda.html`.
+   - Guardar pedido con estado inicial `pending` o `requested` antes de abrir WhatsApp.
+   - Enviar por WhatsApp el resumen y codigo usando `+591 70327181`.
+   - No descontar stock en esta fase hasta que un admin confirme pago.
+
+4. **Fase D - Validacion admin por codigo**
+   - Crear `sales.html` o seccion equivalente en admin.
+   - Permitir buscar codigo, ver ticket completo, datos del cliente, metodo de entrega/pago y total.
+   - Boton "Aceptar / Registrar Pago" debe cambiar estado a `approved/paid` y descontar stock con RPC transaccional.
+   - Manejar errores de stock insuficiente sin dejar ventas parcialmente confirmadas.
+
+5. **Fase E - Reservas, feedback y ofertas**
+   - Para productos agotados, guardar solicitudes de reserva y comentarios del cliente.
+   - Enviar esas solicitudes al panel de alertas admin.
+   - Ocultar vencimientos al publico.
+   - Permitir sugerencias/admin de descuento por vencimiento cercano sin exponer datos sensibles.
+
+6. **Fase F - Modulos operativos posteriores**
+   - Historial operativo con modal de detalle en `orders.html`.
+   - Gestion de empleados/asistencia/pagos recurrentes.
+   - Gestion de activos y depreciacion en `analytics.html`.
+   - Cache offline/manual de inventario en `code.html`.
+
+### Lo logrado en esta pasada
+- Se leyo `TASK_BACKLOG.md` completo con codificacion UTF-8 para evitar interpretar mal acentos y simbolos.
+- Se confirmo que `context_prompt.md` ya tenia historial de Auth/RLS, 2FA, idioma y ecommerce por fases.
+- Se agrego esta actualizacion de continuidad con el pedido actual, analisis del backlog, orden de fases y pendientes concretos.
+- En el checkpoint inicial solo se habia documentado el analisis; despues se ejecuto la Fase A descrita mas abajo con cambios acotados en `shared.js`, `login.html` y `tienda.html`.
+
+### Siguiente accion recomendada para otro modelo o para continuar aqui
+- Empezar por **Fase A**: auditar URL Supabase oficial y esquema `products.expiry_date`.
+- Luego avanzar a **Fase B** con cambios acotados en `tienda.html` y `js/core/client-logic.js`.
+- Mantener cada fase pequena, verificable y documentada en este mismo `context_prompt.md` antes de cerrar la pasada.
+
+### Fase A ejecutada despues del analisis
+- `js/core/shared.js`: se elimino una duplicacion de constantes (`pathname`, `PUBLIC_PAGES`, `currentPage`, `isPublicPage`) que podia romper el script con `Identifier has already been declared`.
+- `js/core/shared.js`: se corrigio la validacion de URL para comparar contra la URL oficial `https://jifgbcjkqzffvtxxktg.supabase.co` y no contra la variante vieja `jiftqbcjkqztfvtxxktq`.
+- `login.html`: se corrigio `FALLBACK_URL`, que tenia una variante mal escrita `jifgfbcjkqzffvtxxktg`.
+- `tienda.html`: se cambio la URL Supabase desde el proyecto sospechoso `qupB57fCBXiY5fazSqAqrA.supabase.co` al fallback oficial `jifgbcjkqzffvtxxktg.supabase.co`, leyendo primero `localStorage.supabaseUrl/supabaseKey` si existen.
+- `tienda.html`: se alinearon textos visibles a Bolivia/Bs. y metodos de pago sin referencias a Venezuela/Caracas/Pago Movil/Zelle.
+- `db/schema.sql`: se confirmo que `products.expiry_date DATE` ya existe en el esquema actual; no se agrego SQL nuevo para esa columna.
+
+### Verificacion de esta fase
+- `node --check js/core/shared.js`: OK.
+- `node scripts/qa-premvida-admin.mjs`: falla con `72/88 checks OK`. Los fallos detectados estan concentrados en `orders.html` y validaciones historicas de ordenes/Bs.; no se corrigieron en esta Fase A porque el usuario pidio avanzar por fases y el foco era estabilizar contexto/Auth/tienda.
+
+### Siguiente paso inmediato actualizado
+- Continuar con **Fase B**: cache/fallback de catalogo en `tienda.html`, validacion robusta de stock y preparacion para reserva/notificacion cuando `stock = 0`.
+- Despues seguir con **Fase C**: guardar pedido con codigo en Supabase antes de abrir WhatsApp, sin descontar stock hasta confirmacion admin.

@@ -18,6 +18,19 @@ let supabaseKey = localStorage.getItem('supabaseKey');
 if (supabaseUrl !== OFFICIAL_SUPABASE_URL || !supabaseKey) {
     supabaseUrl = OFFICIAL_SUPABASE_URL;
     supabaseKey = OFFICIAL_SUPABASE_KEY;
+=======
+// URL Oficial de producción en Supabase
+// ✅ URL REAL de tu proyecto Supabase (tomada de tu panel)
+const FALLBACK_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
+const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
+
+// Si la URL guardada en localStorage no coincide con la oficial o está mal escrita, la corregimos automáticamente
+let supabaseUrl  = localStorage.getItem('supabaseUrl');
+let supabaseKey  = localStorage.getItem('supabaseKey');
+
+if (supabaseUrl !== FALLBACK_URL) {
+    supabaseUrl = FALLBACK_URL;
+    supabaseKey = FALLBACK_KEY;
     localStorage.setItem('supabaseUrl', supabaseUrl);
     localStorage.setItem('supabaseKey', supabaseKey);
     console.info('[Prem Vida] Supabase URL normalizada a produccion.');
