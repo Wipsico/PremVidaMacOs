@@ -1,6 +1,6 @@
 /**
  * Prem Vida - Shared Core Module
- * Centraliza Supabase, Auth/RLS, health check, UI comun y alertas.
+ * Centraliza Supabase, Auth/RLS, health check, UI común y alertas.
  */
 
 const OFFICIAL_SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
@@ -18,22 +18,9 @@ let supabaseKey = localStorage.getItem('supabaseKey');
 if (supabaseUrl !== OFFICIAL_SUPABASE_URL || !supabaseKey) {
     supabaseUrl = OFFICIAL_SUPABASE_URL;
     supabaseKey = OFFICIAL_SUPABASE_KEY;
-=======
-// URL Oficial de producción en Supabase
-// ✅ URL REAL de tu proyecto Supabase (tomada de tu panel)
-const FALLBACK_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
-const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
-
-// Si la URL guardada en localStorage no coincide con la oficial o está mal escrita, la corregimos automáticamente
-let supabaseUrl  = localStorage.getItem('supabaseUrl');
-let supabaseKey  = localStorage.getItem('supabaseKey');
-
-if (supabaseUrl !== FALLBACK_URL) {
-    supabaseUrl = FALLBACK_URL;
-    supabaseKey = FALLBACK_KEY;
     localStorage.setItem('supabaseUrl', supabaseUrl);
     localStorage.setItem('supabaseKey', supabaseKey);
-    console.info('[Prem Vida] Supabase URL normalizada a produccion.');
+    console.info('[Prem Vida] Supabase URL normalizada a producción.');
 }
 
 if (supabaseUrl && supabaseKey && typeof supabase !== 'undefined') {
@@ -47,7 +34,34 @@ if (supabaseUrl && supabaseKey && typeof supabase !== 'undefined') {
     }
 } else {
     window.supabaseClient = null;
-    console.warn('[shared.js] Supabase no esta disponible. Modo degradado activo.');
+    console.warn('[shared.js] Supabase no está disponible. Modo degradado activo.');
+}
+
+// Funciones utilitarias exportables
+export function bs(val) {
+    const num = parseFloat(val);
+    if (isNaN(num)) return 0;
+    return Math.round(num * 100) / 100;
+}
+
+export function formatCurrency(val) {
+    return `Bs. ${bs(val).toFixed(2)}`;
+}
+
+export function formatDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const d = new Date(dateString);
+        return d.toLocaleDateString('es-BO', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return dateString;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -100,7 +114,7 @@ async function enforceAdminSession() {
         localStorage.removeItem('isLoggedIn');
         return true;
     } catch (err) {
-        console.error('[shared.js] Error validando sesion administrativa:', err);
+        console.error('[shared.js] Error validando sesión administrativa:', err);
         clearLegacyAuthState();
         redirectToLogin('auth-error');
         return false;
@@ -123,7 +137,7 @@ window.premVidaLogout = async function premVidaLogout() {
     try {
         if (window.supabaseClient) await window.supabaseClient.auth.signOut();
     } catch (err) {
-        console.warn('[shared.js] No se pudo cerrar sesion en Supabase:', err);
+        console.warn('[shared.js] No se pudo cerrar sesión en Supabase:', err);
     } finally {
         clearLegacyAuthState();
         window.location.href = 'login.html';
@@ -138,7 +152,7 @@ async function checkSupabaseConnection() {
             showSuspensionBanner();
         }
     } catch (err) {
-        console.warn('[shared.js] Conexion fallida, se muestra banner de contingencia:', err);
+        console.warn('[shared.js] Conexión fallida, se muestra banner de contingencia:', err);
         showSuspensionBanner();
     }
 }
@@ -152,7 +166,7 @@ function showSuspensionBanner() {
     banner.style.cssText = 'background:rgba(120,80,0,0.88);border-bottom:1px solid rgba(245,158,11,0.4);';
     banner.innerHTML = `
         <span class="material-symbols-outlined text-lg text-amber-400">warning</span>
-        <span><strong>Servidor sin respuesta:</strong> si el catalogo no carga, revisa Supabase o usa el respaldo offline.</span>
+        <span><strong>Servidor sin respuesta:</strong> si el catálogo no carga, revisa Supabase o usa el respaldo offline.</span>
         <button type="button" id="btn-close-supabase-banner" class="ml-4 p-1 hover:bg-white/10 rounded-full transition-colors">
             <span class="material-symbols-outlined text-sm">close</span>
         </button>
@@ -191,11 +205,11 @@ function setupAvatarDropdown() {
             <div class="p-1 space-y-1">
                 <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors hover:bg-white/5" style="color:#bbcabf">
                     <span class="material-symbols-outlined text-lg">settings</span>
-                    <span>Configuracion</span>
+                    <span>Configuración</span>
                 </a>
                 <button id="btn-logout" type="button" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 text-sm text-left transition-colors font-medium">
                     <span class="material-symbols-outlined text-lg">logout</span>
-                    <span>Cerrar sesion</span>
+                    <span>Cerrar sesión</span>
                 </button>
             </div>
         `;
@@ -302,11 +316,11 @@ async function triggerExpiryAlerts() {
     console.group(`[Prem Vida] Reporte de alertas -> ${adminEmail}`);
     console.log(`Fecha: ${new Date().toLocaleString('es-BO')}`);
     console.log(`Vencidos con stock: ${alreadyExpired.length}`);
-    console.log(`Por vencer en 7 dias: ${expiringSoon.length}`);
+    console.log(`Por vencer en 7 días: ${expiringSoon.length}`);
     console.groupEnd();
 
     if (totalAlerts === 0) {
-        window.showToast?.('check_circle', 'Sin alertas de vencimiento en los proximos 7 dias.', 'success');
+        window.showToast?.('check_circle', 'Sin alertas de vencimiento en los próximos 7 días.', 'success');
         return;
     }
 
@@ -329,7 +343,7 @@ function showBellAlertModal(expired, expiringSoon) {
             <div class="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
                 <div class="min-w-0">
                     <p class="text-xs font-semibold truncate" style="color:#e5e1e4">${escapeHtml(product.name)}</p>
-                    <p class="text-[10px]" style="color:#bbcabf">${escapeHtml(product.category || 'Sin categoria')} - Stock: ${Number(product.stock) || 0}</p>
+                    <p class="text-[10px]" style="color:#bbcabf">${escapeHtml(product.category || 'Sin categoría')} - Stock: ${Number(product.stock) || 0}</p>
                 </div>
                 <div class="text-right shrink-0 space-y-1">
                     ${badge}
@@ -354,7 +368,7 @@ function showBellAlertModal(expired, expiringSoon) {
                     <span class="material-symbols-outlined text-sm" style="color:#bbcabf">close</span>
                 </button>
             </div>
-            <p class="text-xs" style="color:#bbcabf">Reporte local generado para revision administrativa.</p>
+            <p class="text-xs" style="color:#bbcabf">Reporte local generado para revisión administrativa.</p>
             <div class="max-h-72 overflow-y-auto pr-1">${rows}</div>
             <button id="btn-dismiss-bell-modal" type="button" class="w-full py-3 rounded-xl font-bold text-sm transition-all"
                     style="background:#4edea3;color:#003824;box-shadow:0 8px 24px rgba(78,222,163,0.2)">

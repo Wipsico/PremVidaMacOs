@@ -552,7 +552,7 @@ export async function insertProduct(supabase, productData) {
 
 /**
  * Procesa línea por línea el archivo CSV de inventario exportado desde XERO,
- * mapea las columnas relevantes (SKU, nombre, descripción, precio, stock, categoría) 
+ * mapea las columnas relevantes (SKU, nombre, descripción, precio de venta, costo, stock, categoría) 
  * y realiza un upsert masivo eficiente en Supabase para evitar saturar las conexiones.
  * 
  * @param {Object} supabase - Instancia del cliente de Supabase.
@@ -616,7 +616,11 @@ export async function processXeroInventoryCSV(supabase, csvText) {
   const skuIdx = headers.findIndex(h => h.includes('sku') || h.includes('code') || h.includes('itemcode') || h.includes('código') || h.includes('referencia'));
   const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('nombre') || h.includes('itemname') || h.includes('producto'));
   const descIdx = headers.findIndex(h => h.includes('description') || h.includes('descripción') || h.includes('detalles'));
-  const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('precio') || h.includes('unitprice') || h.includes('costo') || h.includes('price/rate'));
+  
+  // Mapeo específico de Precio de Venta vs Costo para formatos Xero y estándar
+  const priceIdx = headers.findIndex(h => h.includes('saledetails.unitprice') || h.includes('sell price') || h.includes('unit price') || h.includes('price') || h.includes('precio') || h.includes('price/rate'));
+  const costIdx = headers.findIndex(h => h.includes('purchasedetails.unitprice') || h.includes('cost price') || h.includes('cost') || h.includes('costo') || h.includes('precio compra') || h.includes('unit cost'));
+  
   const stockIdx = headers.findIndex(h => h.includes('stock') || h.includes('quantity') || h.includes('cantidad') || h.includes('onhand') || h.includes('qty'));
   const catIdx = headers.findIndex(h => h.includes('category') || h.includes('categoría') || h.includes('grupo') || h.includes('tipo'));
 
@@ -636,10 +640,14 @@ export async function processXeroInventoryCSV(supabase, csvText) {
 
     const description = descIdx !== -1 ? row[descIdx] : '';
     
-    // Limpieza y parseo numérico de precios y stocks (elimina símbolos de moneda, comas, etc.)
+    // Limpieza y parseo numérico del precio de venta
     const rawPrice = priceIdx !== -1 ? row[priceIdx] : '0';
     const price = Math.round((parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0) * 100) / 100;
     
+    // Limpieza y parseo numérico del costo
+    const rawCost = costIdx !== -1 ? row[costIdx] : '0';
+    const cost = Math.round((parseFloat(rawCost.replace(/[^0-9.]/g, '')) || 0) * 100) / 100;
+
     const rawStock = stockIdx !== -1 ? row[stockIdx] : '0';
     const stock = parseInt(rawStock.replace(/[^0-9-]/g, '')) || 0;
     
@@ -650,6 +658,7 @@ export async function processXeroInventoryCSV(supabase, csvText) {
       name,
       description,
       price,
+      cost,
       stock,
       category,
       is_active: true
