@@ -271,120 +271,143 @@ function setupNotificationBell() {
     const bellBtn = document.getElementById('btn-notifications');
     if (!bellBtn || bellBtn.dataset.bound === 'true') return;
     bellBtn.dataset.bound = 'true';
+    
+    const bellContainer = bellBtn.parentElement;
+    bellContainer.classList.add('relative');
+
+    // Create badge element
+    const badge = document.createElement('span');
+    badge.id = 'notification-badge';
+    badge.className = 'absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full hidden';
+    bellContainer.appendChild(badge);
+
+    // Initial fetch to show badge
+    fetchNotificationData().then(data => {
+        const totalAlerts = data.lowStock.length + data.pendingOrders.length;
+        if (totalAlerts > 0) {
+            badge.textContent = totalAlerts > 9 ? '9+' : totalAlerts;
+            badge.classList.remove('hidden');
+        }
+    });
+
     bellBtn.addEventListener('click', async (event) => {
         event.stopPropagation();
-        await triggerExpiryAlerts();
+        await triggerNotificationAlerts(bellContainer);
     });
 }
 
-async function triggerExpiryAlerts() {
-    const adminEmail = 'admin@premvida.com';
-    const today = new Date();
-    const alertDate = new Date(today);
-    alertDate.setDate(today.getDate() + 7);
-    const todayStr = today.toISOString().split('T')[0];
-    const alertDateStr = alertDate.toISOString().split('T')[0];
-    let expiringSoon = [];
-    let alreadyExpired = [];
+async function fetchNotificationData() {
+    let lowStock = [];
+    let pendingOrders = [];
 
     if (window.supabaseClient) {
         try {
-            const { data: soon } = await window.supabaseClient
+            // Fetch low stock (<= 5)
+            const { data: stockData } = await window.supabaseClient
                 .from('products')
-                .select('id, name, category, expiry_date, price, stock')
-                .not('expiry_date', 'is', null)
-                .gte('expiry_date', todayStr)
-                .lte('expiry_date', alertDateStr)
-                .order('expiry_date', { ascending: true });
+                .select('id, name, stock')
+                .lte('stock', 5)
+                .order('stock', { ascending: true });
+            
+            // Fetch pending orders (espera_aprobacion)
+            const { data: orderData } = await window.supabaseClient
+                .from('orders')
+                .select('id, code, total_amount, created_at')
+                .eq('status', 'espera_aprobacion')
+                .order('created_at', { ascending: false });
 
-            const { data: expired } = await window.supabaseClient
-                .from('products')
-                .select('id, name, category, expiry_date, price, stock')
-                .not('expiry_date', 'is', null)
-                .lt('expiry_date', todayStr)
-                .gt('stock', 0)
-                .order('expiry_date', { ascending: true });
-
-            expiringSoon = soon || [];
-            alreadyExpired = expired || [];
+            lowStock = stockData || [];
+            pendingOrders = orderData || [];
         } catch (err) {
-            console.warn('[shared.js] No se pudieron consultar alertas de vencimiento:', err);
+            console.warn('[shared.js] Error al consultar notificaciones:', err);
+        }
+    }
+    return { lowStock, pendingOrders };
+}
+
+async function triggerNotificationAlerts(container) {
+    const data = await fetchNotificationData();
+    const totalAlerts = data.lowStock.length + data.pendingOrders.length;
+
+    // Update badge
+    const badge = document.getElementById('notification-badge');
+    if (badge) {
+        if (totalAlerts > 0) {
+            badge.textContent = totalAlerts > 9 ? '9+' : totalAlerts;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
         }
     }
 
-    const totalAlerts = expiringSoon.length + alreadyExpired.length;
-    console.group(`[Prem Vida] Reporte de alertas -> ${adminEmail}`);
-    console.log(`Fecha: ${new Date().toLocaleString('es-BO')}`);
-    console.log(`Vencidos con stock: ${alreadyExpired.length}`);
-    console.log(`Por vencer en 7 días: ${expiringSoon.length}`);
-    console.groupEnd();
-
     if (totalAlerts === 0) {
-        window.showToast?.('check_circle', 'Sin alertas de vencimiento en los próximos 7 días.', 'success');
+        window.showToast?.('check_circle', 'No hay notificaciones pendientes.', 'success');
         return;
     }
 
-    window.showToast?.('warning', `${totalAlerts} alerta(s) de vencimiento. Reporte generado.`, 'warning');
-    showBellAlertModal(alreadyExpired, expiringSoon);
+    showNotificationDropdown(container, data.lowStock, data.pendingOrders);
 }
 
-function showBellAlertModal(expired, expiringSoon) {
-    document.getElementById('modal-bell-alerts')?.remove();
+function showNotificationDropdown(container, lowStock, pendingOrders) {
+    let dropdown = document.getElementById('notifications-dropdown');
+    
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+        return;
+    }
 
-    const rows = [...expired, ...expiringSoon].map((product) => {
-        const price = Math.round((Number(product.price) || 0) * 100) / 100;
-        const remate = Math.round(price * 0.7 * 100) / 100;
-        const days = Math.ceil((new Date(product.expiry_date) - new Date()) / 86400000);
-        const badge = days < 0
-            ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-500/20 text-red-400">VENCIDO</span>'
-            : `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300">Vence en ${days}d</span>`;
-
-        return `
-            <div class="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                <div class="min-w-0">
-                    <p class="text-xs font-semibold truncate" style="color:#e5e1e4">${escapeHtml(product.name)}</p>
-                    <p class="text-[10px]" style="color:#bbcabf">${escapeHtml(product.category || 'Sin categoría')} - Stock: ${Number(product.stock) || 0}</p>
-                </div>
-                <div class="text-right shrink-0 space-y-1">
-                    ${badge}
-                    <p class="text-[10px] font-bold" style="color:#4edea3">Bs. ${remate.toFixed(2)} remate</p>
-                </div>
-            </div>`;
-    }).join('');
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-bell-alerts';
-    modal.className = 'fixed inset-0 z-[200] flex items-center justify-center';
-    modal.style.cssText = 'background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);';
-    modal.innerHTML = `
-        <div class="w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4"
-             style="background:rgba(19,19,21,0.96);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);">
-            <div class="flex items-center justify-between border-b border-white/10 pb-4">
-                <h3 class="font-bold text-base flex items-center gap-2" style="color:#e5e1e4">
-                    <span class="material-symbols-outlined text-amber-400">notifications_active</span>
-                    Alertas de merma
-                </h3>
-                <button id="btn-close-bell-modal" type="button" class="p-1.5 hover:bg-white/10 rounded-full transition-colors">
-                    <span class="material-symbols-outlined text-sm" style="color:#bbcabf">close</span>
-                </button>
+    const buildStockRows = () => lowStock.map(p => `
+        <div class="flex items-center justify-between gap-3 py-2 border-b border-white/5 hover:bg-white/5 px-2 rounded cursor-pointer transition-colors" onclick="window.location.href='code.html'">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="material-symbols-outlined text-amber-400 text-sm">inventory_2</span>
+                <p class="text-xs font-semibold truncate text-on-surface">${escapeHtml(p.name)}</p>
             </div>
-            <p class="text-xs" style="color:#bbcabf">Reporte local generado para revisión administrativa.</p>
-            <div class="max-h-72 overflow-y-auto pr-1">${rows}</div>
-            <button id="btn-dismiss-bell-modal" type="button" class="w-full py-3 rounded-xl font-bold text-sm transition-all"
-                    style="background:#4edea3;color:#003824;box-shadow:0 8px 24px rgba(78,222,163,0.2)">
-                Gestionar inventario
-            </button>
-        </div>`;
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${p.stock === 0 ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-300'} whitespace-nowrap">
+                Stock: ${p.stock}
+            </span>
+        </div>`).join('');
 
-    document.body.appendChild(modal);
-    document.getElementById('btn-close-bell-modal')?.addEventListener('click', () => modal.remove());
-    document.getElementById('btn-dismiss-bell-modal')?.addEventListener('click', () => {
-        modal.remove();
-        window.location.href = 'code.html';
-    });
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) modal.remove();
-    });
+    const buildOrderRows = () => pendingOrders.map(o => `
+        <div class="flex items-center justify-between gap-3 py-2 border-b border-white/5 hover:bg-white/5 px-2 rounded cursor-pointer transition-colors" onclick="window.location.href='orders.html'">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="material-symbols-outlined text-blue-400 text-sm">shopping_cart</span>
+                <div class="flex flex-col">
+                    <p class="text-xs font-semibold text-on-surface">Orden ${escapeHtml(o.code)}</p>
+                    <p class="text-[10px] text-on-surface-variant">Bs. ${Number(o.total_amount).toFixed(2)}</p>
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/20 text-blue-400 whitespace-nowrap">Pendiente</span>
+        </div>`).join('');
+
+    dropdown = document.createElement('div');
+    dropdown.id = 'notifications-dropdown';
+    dropdown.className = 'absolute right-0 top-full mt-2 w-80 max-h-96 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[90]';
+    dropdown.style.cssText = 'background:rgba(19,19,21,0.95);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.1);';
+    
+    dropdown.innerHTML = `
+        <div class="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+            <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">notifications</span>
+                Notificaciones
+            </h3>
+        </div>
+        <div class="overflow-y-auto p-2 flex-1">
+            ${lowStock.length > 0 ? `
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider px-2 py-1 mt-1">Alertas de Stock</p>
+                ${buildStockRows()}
+            ` : ''}
+            ${pendingOrders.length > 0 ? `
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider px-2 py-1 mt-3">Órdenes Pendientes</p>
+                ${buildOrderRows()}
+            ` : ''}
+        </div>
+    `;
+
+    container.appendChild(dropdown);
+
+    // Cierre click fuera
+    document.addEventListener('click', () => dropdown.classList.add('hidden'));
+    dropdown.addEventListener('click', (event) => event.stopPropagation());
 }
 
 function escapeHtml(value) {

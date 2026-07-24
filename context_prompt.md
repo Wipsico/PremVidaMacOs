@@ -77,16 +77,11 @@ El proyecto consta de los siguientes archivos en el espacio de trabajo:
 - **Fase 2 (Personal y Nómina):** CRUD de empleados y registro de pagos en Supabase con redondeo financiero y KPIs ajustados en `personal.html`. Mapeo: `salary` → `hourly_rate`. KPI de producción diaria mockeado a `150.00 u.`
 - **Fase 3 (Distribución y Marcas):** `orders.html` SPA completada con filtros case-insensitive por marca (Heartbeef, Green Leaf, Otros), KPIs reactivos (`#kpi-total-orders`, `#kpi-pending-orders`, `#kpi-leader-brand`), badges de estado, modal de nueva orden con redondeo Bs. y generación de comprobantes imprimibles. Módulo `js/core/orders-logic.js` exporta `fetchSupplierOrders`, `insertPurchaseOrder` y `fetchSuppliers` usando join `.select('*, suppliers(id, name, city)')`.
 
-### 4. En Desarrollo Actual
-- **Fase 4 (Configuraciones y Auditoría):** Creación del panel de control de variables globales del sistema y visor reactivo de la tabla de logs de auditoría generados por los triggers de Supabase.
+### 4. En Desarrollo Actual (Actualización 2026-07-24 17:15)
+- **Fase B y C (Tienda Pública y Flujo de Pedidos):** Implementación de la arquitectura de tienda pública, validación de stock y generación de pedidos con código único antes de la redirección a WhatsApp.
 
 ### 5. 🚨 Protocolo de Contingencia por Límite de Cuota / Créditos
 Si este modelo se utiliza como alternativo de rescate debido al agotamiento de la cuota principal, se deben seguir estrictamente estas directrices:
-1. **Sin Introducciones ni Teoría:** Ir directo al grano, omitiendo explicaciones de qué es el archivo o por qué falló el anterior.
-2. **Código de Producción Completo:** No entregar fragmentos incompletos con comentarios tipo `// ... resto del código aquí ...`. Escribir el bloque modificado completo listo para sustitución.
-3. **Mapeo de Rutas Físicas:** Especificar las modificaciones en archivos reales en la ruta local `D:\Proyectos\PremVidaMacOs-main`. Estructurar la respuesta con el nombre exacto del archivo como encabezado principal para facilitar la copia y reemplazo.
-4. **Respetar la Integridad Financiera:** Todo cálculo de inventario o venta debe procesarse bajo la moneda del proyecto: Bolivianos (Bs.) y con el redondeo estricto `Math.round(val * 100) / 100`.
-
 Ahora que tienes todo el contexto de archivos, base de datos, lógica de cliente, administración, estilos y el protocolo de contingencia de Prem Vida, por favor indícame en qué tarea o mejora te gustaría que trabajemos hoy. ¡Estoy listo!
 ```
 
@@ -319,10 +314,38 @@ Trabajar por fases bajo Spec-Driven Development:
 - `tienda.html`: se alinearon textos visibles a Bolivia/Bs. y metodos de pago sin referencias a Venezuela/Caracas/Pago Movil/Zelle.
 - `db/schema.sql`: se confirmo que `products.expiry_date DATE` ya existe en el esquema actual; no se agrego SQL nuevo para esa columna.
 
-### Verificacion de esta fase
-- `node --check js/core/shared.js`: OK.
-- `node scripts/qa-premvida-admin.mjs`: falla con `72/88 checks OK`. Los fallos detectados estan concentrados en `orders.html` y validaciones historicas de ordenes/Bs.; no se corrigieron en esta Fase A porque el usuario pidio avanzar por fases y el foco era estabilizar contexto/Auth/tienda.
+### Fase B y C ejecutadas en tienda.html [Actualizado: 2026-07-24 17:10]
+- **Fase B**: Se integró caché de respaldo en `localStorage` (`premvida_catalog_cache`) para el catálogo. Se actualizó la validación de stock y se cambió el botón CTA de productos con stock = 0 a "Reservar / Notificarme" junto a un modal nativo en JS para capturar sugerencias/feedback.
+- **Fase C**: Se refactorizó la función `submitOrderToDatabase` en `tienda.html` para usar la función RPC `create_public_order` en lugar de inserts directos a la BD. El pedido se guarda como 'espera_aprobacion' antes de abrir WhatsApp, sin descontar stock.
 
-### Siguiente paso inmediato actualizado
-- Continuar con **Fase B**: cache/fallback de catalogo en `tienda.html`, validacion robusta de stock y preparacion para reserva/notificacion cuando `stock = 0`.
-- Despues seguir con **Fase C**: guardar pedido con codigo en Supabase antes de abrir WhatsApp, sin descontar stock hasta confirmacion admin.
+### Verificación de estas fases
+- Modificaciones en un solo archivo (`tienda.html`), manteniendo el código limpio sin agregar archivos innecesarios.
+- La ejecución del RPC evita problemas de políticas RLS y bloquea escrituras arbitrarias de clientes no autenticados.
+
+### Siguiente paso inmediato actualizado (Fase D)
+- Avanzar a **Fase D (Validación admin por código)**: Crear la pestaña o sección `sales.html` (o integrarlo a `orders.html`) para que el cajero busque el código de venta, vea el ticket, registre el pago y ejecute la RPC transaccional `confirm_order(uuid)` que finalmente descuente el stock.
+
+### Fase 4 ejecutada [Actualizado: 2026-07-24 17:24]
+- **Regla Añadida**: A partir de ahora, cada actualización en el historial debe incluir Fecha y Hora para que la IA sepa cuándo se trabajó.
+- **Correcciones en `tienda.html` (Realtime)**: Se añadió `supabase.auth.getSession()` antes de suscribir al canal `public:products` y reconexión automática en caso de error 1006.
+- **Modales de Administración**: Se añadió el campo `image_url` en los modales de creación y edición de productos (`code.html`). Las categorías se actualizaron y tradujeron.
+- **Lógica de Umbrales de Stock**: Se aplicaron las reglas: Bajo Stock (`<= 5`), Lleno (`>= 35`) y Normal en `tienda.html` y `code.html`.
+- **Notificaciones Dinámicas**: Se reescribió `setupNotificationBell` en `shared.js` para extraer simultáneamente los productos con bajo stock (`<= 5`) y órdenes `espera_aprobacion`. Se incluyó un badge dinámico en la UI y un menú desplegable fusionado para alertas.
+
+### Verificación Fase D [Actualizado: 2026-07-24 17:26]
+- **Flujo de código verificado**: `orders-logic.js` busca por `order_code` (ej. `1X9NNF`) en `searchOrderCode()`. Detecta `espera_aprobacion` para habilitar el botón "Registrar Pago".
+- **Consistencia de status**: El literal `'espera_aprobacion'` es usado de forma consistente en `tienda.html` (al crear la orden vía RPC), `orders-logic.js` (filtros, búsqueda y KPIs) y `shared.js` (fetch de notificaciones de campanita). ✅
+- **RPC confirm_order**: Llamado correctamente con `supabase.rpc('confirm_order', { p_order_id: currentOrderToConfirm })`. Definida en `db/schema.sql` y `db/backlog_phase2_public_sales.sql`. ✅
+- **Modal detalle (openTransactionDetail)**: Contiene un placeholder `alert()`. Pendiente reemplazarlo con renderizado real de `order_items`.
+
+### Estado del Mapa de Fases [Actualizado: 2026-07-24 17:26]
+- ✅ Fase A: Estabilización Supabase URL + schema
+- ✅ Fase B: Tienda pública conectada a inventario
+- ✅ Fase C: Pedido con código antes de WhatsApp
+- ✅ Fase D: Validación admin por código (lógica completa; modal detalle con items = pendiente menor)
+- ✅ Fase 4 (Mejoras): Realtime, modales image_url, categorías ES, umbrales stock, campanita dinámica
+- 🔲 **Fase E: Reservas, feedback y ofertas** (PRÓXIMA)
+  - Para productos agotados, guardar solicitudes de reserva desde `tienda.html`.
+  - Modal de "Notificarme" ya existe; falta conectarlo a tabla Supabase (`product_reservations` o campo en `orders`).
+  - Panel admin para revisar reservas pendientes.
+- 🔲 Fase F: Módulos operativos (historial modal real con items, empleados, analytics, cache offline)

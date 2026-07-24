@@ -1,6 +1,6 @@
 /**
- * Prem Vida - Órdenes, historial operativo y venta por código.
- * Con flujo de estados, menú desplegable de acciones y control de inventario.
+ * Prem Vida - Gestión Integral de Órdenes, Historial y Creación Manual Avanzada.
+ * Incluye tiempo real con Supabase, filtrado dinámico por marcas/personas y UI tipo carrito.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -10,171 +10,229 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchBtn = document.getElementById('btn-search-order-code');
     const confirmBtn = document.getElementById('btn-confirm-order-code');
     const codeResult = document.getElementById('order-code-result');
-    let currentCodeSale = null;
+
+    // Referencias a botones de acción principales
+    const mainCreateBtn = document.getElementById('btn-register-payment') || document.getElementById('btn-create-order');
+
     let currentRows = [];
+    let availableProducts = [];
+    let cartItems = [];
+    let activeDeliveryType = 'tienda'; // 'tienda' | 'domicilio'
 
     const ORDER_TABLE = 'orders';
     const ORDER_ITEMS_TABLE = 'order_items';
     const PRODUCTS_TABLE = 'products';
 
-    const mockOrders = [
-        { id: 'PV-0041', entity: 'Distribuidora Vegana Oriente', type: 'Bill (Gasto)', amount: 1420.00, status: 'completada', raw: null },
-        { id: 'PV-0042', entity: 'Cliente WhatsApp', type: 'Sale (Venta)', amount: 185.50, status: 'aprobado', raw: null },
-        { id: 'PV-0043', entity: 'Mariela Justiniano', type: 'Sale (Venta)', amount: 90.00, status: 'espera_aprobacion', raw: null },
-    ];
-
+    // Inicializar
+    setupMainButtons();
+    await loadProductsCache();
     await loadOrders();
+    setupRealtimeSubscription();
 
-    // Filtros por marca o tab
-    document.addEventListener('pv:orders-tab-change', (event) => {
-        renderOrders(filterRowsByBrand(currentRows.length ? currentRows : mockOrders, event.detail?.tab || 'todas'));
-    });
+    // 1. Renombrar y configurar el botón principal a "Crear"
+    function setupMainButtons() {
+        if (mainCreateBtn) {
+            mainCreateBtn.innerHTML = `<span class="material-symbols-outlined text-lg">add</span> Crear`;
+            mainCreateBtn.className = "px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-sm flex items-center gap-1.5 transition shadow-lg cursor-pointer";
+            mainCreateBtn.addEventListener('click', openCreateOrderModal);
+        }
 
-    // Conexión de Botones e Interfaz Principal
-    searchBtn?.addEventListener('click', searchOrderCode);
-    codeInput?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') searchOrderCode();
-    });
-    confirmBtn?.addEventListener('click', confirmCurrentOrder);
-    document.getElementById('btn-export-orders')?.addEventListener('click', exportVisibleRows);
-    document.getElementById('btn-print-summary')?.addEventListener('click', () => window.print());
-    document.getElementById('btn-add-brand')?.addEventListener('click', openBrandPrompt);
-    document.getElementById('btn-close-transaction-modal')?.addEventListener('click', closeTransactionModal);
-    
-    document.getElementById('transaction-modal')?.addEventListener('click', (event) => {
-        if (event.target.id === 'transaction-modal') closeTransactionModal();
-    });
+        // Búsqueda por código si existe en el DOM
+        searchBtn?.addEventListener('click', searchOrderCode);
+        codeInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchOrderCode(); });
+        confirmBtn?.addEventListener('click', confirmCurrentOrder);
+        document.getElementById('btn-export-orders')?.addEventListener('click', exportVisibleRows);
+        document.getElementById('btn-print-summary')?.addEventListener('click', () => window.print());
+    }
 
-    // Cargar órdenes desde Supabase
+    // 2. Cargar productos desde Supabase para el buscador inteligente
+    async function loadProductsCache() {
+        if (!supabase) return;
+        try {
+            const { data, error } = await supabase
+                .from(PRODUCTS_TABLE)
+                .select('id, name, sku, price, image_url, category, stock');
+            if (!error && data) {
+                availableProducts = data;
+            }
+        } catch (err) {
+            console.warn('[orders] Error al cargar inventario:', err);
+        }
+    }
+
+    // 3. Suscripción en Tiempo Real con Supabase
+    function setupRealtimeSubscription() {
+        if (!supabase) return;
+        supabase
+            .channel('orders-live-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: ORDER_TABLE }, () => {
+                loadOrders();
+            })
+            .subscribe();
+    }
+
+    // 4. Cargar órdenes de Supabase
     async function loadOrders() {
         if (!tableBody) return;
 
         if (!supabase) {
-            currentRows = mockOrders;
-            renderOrders(currentRows);
+            renderOrders([]);
             return;
         }
 
         try {
             const { data: orders, error } = await supabase
                 .from(ORDER_TABLE)
-                .select('id, order_code, customer_name, customer_phone, delivery_type, delivery_notes, payment_method, total_amount, status, created_at')
+                .select('*')
                 .order('created_at', { ascending: false })
-                .limit(25);
+                .limit(50);
 
             if (error) throw error;
 
-            currentRows = (orders || []).map((order) => ({
-                id: order.order_code || order.id.slice(0, 8),
-                entity: order.customer_name || order.customer_phone || 'Cliente tienda',
-                type: 'Sale (Venta)',
-                amount: Number(order.total_amount || 0),
-                status: order.status || 'espera_aprobacion',
-                brand: inferBrand(order),
-                raw: order,
-            }));
+            currentRows = (orders || []).map((order) => {
+                const entityName = order.customer_name || order.customer_phone || 'Cliente Particular';
+                return {
+                    id: order.order_code || (order.id ? String(order.id).slice(0, 8) : 'N/A'),
+                    entity: entityName,
+                    type: order.type || (order.payment_method?.toLowerCase().includes('bill') ? 'Bill (Gasto)' : 'Sale (Venta)'),
+                    amount: Number(order.total_amount || 0),
+                    status: order.status || 'espera_aprobacion',
+                    brandCategory: classifyBrand(entityName, order.delivery_notes),
+                    raw: order,
+                };
+            });
 
-            renderOrders(currentRows.length ? currentRows : mockOrders);
-        } catch (error) {
-            console.warn('[orders] Error cargando órdenes:', error);
-            currentRows = mockOrders;
             renderOrders(currentRows);
+            setupTabsFilter();
+            updateKpis(currentRows);
+        } catch (error) {
+            console.error('[orders] Error al cargar lista de órdenes:', error);
         }
     }
 
-    // Renderizar filas con Selector Unificado de Acciones
+    // Clasificar registros por Marca (Heartbeef, Green Leaf) o Persona ("Otros")
+    function classifyBrand(name = '', notes = '') {
+        const text = `${name} ${notes}`.toLowerCase();
+        if (text.includes('heartbeef')) return 'heartbeef';
+        if (text.includes('green') || text.includes('leaf')) return 'green-leaf';
+        return 'otros'; // Clientes particulares / personas
+    }
+
+    // 5. Configuración de Tabs de Filtrado ("Todas", "Heartbeef", "Green Leaf", "Otros")
+    function setupTabsFilter() {
+        const tabs = document.querySelectorAll('.order-tab, [data-brand]');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('bg-emerald-500', 'text-zinc-950', 'font-bold'));
+                tab.classList.add('bg-emerald-500', 'text-zinc-950', 'font-bold');
+
+                const targetBrand = tab.dataset.brand || 'todas';
+                if (targetBrand === 'todas') {
+                    renderOrders(currentRows);
+                } else {
+                    const filtered = currentRows.filter(r => r.brandCategory === targetBrand);
+                    renderOrders(filtered);
+                }
+            });
+        });
+    }
+
+    // 6. Renderizar Tabla de Órdenes (Con basurero afuera y selector ⚙️)
     function renderOrders(rows) {
-        updateKpis(rows);
+        if (!tableBody) return;
+
+        if (!rows.length) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-zinc-500 text-sm">No hay registros de órdenes disponibles.</td></tr>`;
+            return;
+        }
+
         tableBody.innerHTML = rows.map((order) => {
             const rawId = order.raw?.id || order.id;
             const status = String(order.status).toLowerCase();
-            const isSale = order.type.includes('Sale');
             const isPending = ['pendiente', 'espera_aprobacion', 'espera-aprobacion', 'draft'].includes(status);
+            const isCompleted = status === 'completada' || status === 'completado';
+            const isCanceled = status === 'cancelada' || status === 'cancelado';
 
-            // Generar opciones del selector según el estado de la orden
-            let selectOptions = `<option value="" disabled selected>Acciones...</option>`;
+            // Opciones del selector dinámico (⚙️ Decisión)
+            let selectOptions = `<option value="" disabled selected class="bg-zinc-900 text-zinc-500">⚙️ Opción</option>`;
 
             if (isPending) {
                 selectOptions += `
-                    <option value="aprobar">🟢 Aprobar</option>
-                    <option value="cancelar">🟡 Cancelar</option>
-                    <option value="eliminar">🔴 Eliminar</option>
+                    <option value="aprobado" class="bg-zinc-900 text-emerald-400 py-1">Aprobar</option>
+                    <option value="cancelada" class="bg-zinc-900 text-amber-400 py-1">Cancelar</option>
                 `;
             } else if (['aprobado', 'confirmado'].includes(status)) {
                 selectOptions += `
-                    <option value="registrar-venta">🔵 Registrar Venta</option>
-                    <option value="cancelar">🟡 Cancelar (Devolver Stock)</option>
-                    <option value="eliminar">🔴 Eliminar (Devolver Stock)</option>
+                    <option value="completada" class="bg-zinc-900 text-blue-400 py-1">Registrar Venta</option>
+                    <option value="cancelada" class="bg-zinc-900 text-amber-400 py-1">Cancelar (Devolver Stock)</option>
                 `;
-            } else if (status === 'cancelada') {
+            } else if (isCanceled) {
                 selectOptions += `
-                    <option value="eliminar">🔴 Eliminar</option>
+                    <option value="aprobado" class="bg-zinc-900 text-emerald-400 py-1">Reactivar (Aprobar)</option>
                 `;
-            } else if (status === 'completada') {
+            } else if (isCompleted) {
                 selectOptions += `
-                    <option value="" disabled>✔️ Venta Completada</option>
+                    <option value="" disabled class="bg-zinc-900 text-zinc-500">Completada</option>
                 `;
             }
 
             return `
-                <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/20 transition">
+                <tr class="border-b border-zinc-800/40 hover:bg-zinc-900/30 transition text-sm">
                     <td class="px-6 py-4 font-mono text-zinc-400">${escapeHtml(order.id)}</td>
                     <td class="px-6 py-4 font-medium text-white">${escapeHtml(order.entity)}</td>
                     <td class="px-6 py-4">
-                        <span class="text-xs px-2.5 py-1 rounded-md font-medium ${isSale ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}">${escapeHtml(order.type)}</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">${escapeHtml(order.type)}</span>
                     </td>
                     <td class="px-6 py-4 font-semibold text-emerald-400">Bs. ${roundBs(order.amount).toFixed(2)}</td>
                     <td class="px-6 py-4">
-                        <span class="text-xs px-2.5 py-1 rounded-full font-medium ${isPending ? 'bg-amber-500/10 text-amber-400' : status === 'completada' ? 'bg-blue-500/10 text-blue-400' : status === 'cancelada' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}">${escapeHtml(order.status)}</span>
+                        <span class="text-xs px-2.5 py-1 rounded-full font-medium ${isPending ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : isCompleted ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : isCanceled ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}">${escapeHtml(order.status)}</span>
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-2">
-                            <select data-id="${escapeHtml(rawId)}" data-status="${status}" class="action-select bg-zinc-900 border border-zinc-700 text-xs text-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                            <!-- Selector Decisión (⚙️) -->
+                            <select data-id="${escapeHtml(rawId)}" data-status="${status}" class="action-select bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-xs font-medium text-zinc-200 rounded-lg px-2.5 py-1.5 transition-all focus:outline-none focus:border-zinc-500 cursor-pointer shadow-sm">
                                 ${selectOptions}
                             </select>
-                            <button data-order-id="${escapeHtml(rawId)}" class="btn-view-order text-zinc-400 hover:text-white transition material-symbols-outlined text-base p-1 rounded-lg hover:bg-zinc-800" title="Ver detalle">visibility</button>
+
+                            <!-- Botón Ojito (Ver Detalle) -->
+                            <button data-order-id="${escapeHtml(rawId)}" class="btn-view-order text-zinc-400 hover:text-white transition material-symbols-outlined text-lg p-1.5 rounded-lg hover:bg-zinc-800" title="Ver detalle">visibility</button>
+
+                            <!-- Botón Basurero (Eliminar) al lado del ojito -->
+                            <button data-id="${escapeHtml(rawId)}" data-status="${status}" class="btn-delete-order text-zinc-500 hover:text-red-400 transition material-symbols-outlined text-lg p-1.5 rounded-lg hover:bg-red-500/10" title="Eliminar registro">delete</button>
                         </div>
                     </td>
                 </tr>`;
         }).join('');
 
-        // Event Listeners para abrir detalles
-        tableBody.querySelectorAll('.btn-view-order').forEach((button) => {
-            button.addEventListener('click', () => openTransactionDetail(button.dataset.orderId));
+        // Listeners para acciones de tabla
+        tableBody.querySelectorAll('.btn-view-order').forEach(btn => {
+            btn.addEventListener('click', () => openTransactionDetail(btn.dataset.orderId));
         });
 
-        // Event Listeners para las opciones del desplegable
-        tableBody.querySelectorAll('.action-select').forEach((select) => {
+        tableBody.querySelectorAll('.btn-delete-order').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const dataset = e.currentTarget.dataset;
+                await eliminarOrden(dataset.id, dataset.status);
+            });
+        });
+
+        tableBody.querySelectorAll('.action-select').forEach(select => {
             select.addEventListener('change', async (e) => {
-                const action = e.target.value;
+                const nuevoEstado = e.target.value;
                 const id = e.target.dataset.id;
-                const currentStatus = e.target.dataset.status;
+                const statusActual = e.target.dataset.status;
 
-                if (action === 'aprobar') {
-                    await cambiarEstadoOrden(id, 'aprobado');
-                } else if (action === 'registrar-venta') {
-                    await cambiarEstadoOrden(id, 'completada');
-                } else if (action === 'cancelar') {
-                    const revertir = ['aprobado', 'confirmado'].includes(String(currentStatus).toLowerCase());
-                    await cambiarEstadoOrden(id, 'cancelada', revertir);
-                } else if (action === 'eliminar') {
-                    await eliminarOrden(id, currentStatus);
-                }
-
+                if (!nuevoEstado) return;
+                const revertirStock = (nuevoEstado === 'cancelada' && ['aprobado', 'confirmado'].includes(statusActual));
+                await cambiarEstadoOrden(id, nuevoEstado, revertirStock);
                 e.target.selectedIndex = 0;
             });
         });
     }
 
-    // Cambio de estado y gestión de stock
+    // 7. Cambiar Estado en Base de Datos Supabase
     async function cambiarEstadoOrden(ordenId, nuevoEstado, revertirStock = false) {
-        if (!supabase) {
-            const targetRow = currentRows.find(r => (r.raw?.id || r.id) === ordenId);
-            if (targetRow) targetRow.status = nuevoEstado;
-            renderOrders(currentRows);
-            window.showToast?.('info', `Estado simulado cambiado a: ${nuevoEstado}`, 'info');
-            return;
-        }
+        if (!supabase) return;
 
         try {
             if (revertirStock) {
@@ -190,26 +248,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            window.showToast?.('check_circle', `Orden actualizada a: ${nuevoEstado}`, 'success');
+            window.showToast?.('check_circle', `Estado cambiado a ${nuevoEstado}`, 'success');
             await loadOrders();
-        } catch (error) {
-            console.error('[orders] Error al actualizar estado:', error);
-            window.showToast?.('error', `Error: ${error.message}`, 'error');
+        } catch (err) {
+            console.error('[orders] Error cambiando estado:', err);
+            window.showToast?.('error', `Error: ${err.message}`, 'error');
         }
     }
 
-    // Eliminación de órdenes
+    // 8. Eliminar Orden
     async function eliminarOrden(ordenId, estadoActual) {
-        if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+        if (!confirm('¿Estás seguro de eliminar este registro permanentemente?')) return;
+        if (!supabase) return;
 
         try {
-            if (!supabase) {
-                currentRows = currentRows.filter(r => (r.raw?.id || r.id) !== ordenId);
-                renderOrders(currentRows);
-                window.showToast?.('check_circle', 'Registro eliminado correctamente', 'success');
-                return;
-            }
-
             if (['aprobado', 'confirmado'].includes(String(estadoActual).toLowerCase())) {
                 await manejarDevolucionStock(ordenId);
             }
@@ -221,406 +273,468 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            window.showToast?.('check_circle', 'Orden eliminada correctamente', 'success');
+            window.showToast?.('check_circle', 'Registro eliminado correctamente', 'success');
             await loadOrders();
-        } catch (error) {
-            console.error('[orders] Error al eliminar orden:', error);
-            window.showToast?.('error', `Error al eliminar: ${error.message}`, 'error');
+        } catch (err) {
+            console.error('[orders] Error al eliminar:', err);
+            window.showToast?.('error', `Error: ${err.message}`, 'error');
         }
     }
 
-    // Descontar inventario al aprobar
+    // Manejo de Inventario (Descontar / Devolver Stock)
     async function manejarDescuentoStock(ordenId) {
         try {
             const { data: items } = await supabase.from(ORDER_ITEMS_TABLE).select('product_id, quantity').eq('order_id', ordenId);
             if (!items || !items.length) return;
 
             for (const item of items) {
-                if (item.product_id) {
-                    // Intenta usar RPC o actualización directa
-                    const { error: rpcErr } = await supabase.rpc('decrement_product_stock', { p_id: item.product_id, p_qty: item.quantity });
-                    if (rpcErr) {
-                        const { data: prod } = await supabase.from(PRODUCTS_TABLE).select('stock').eq('id', item.product_id).single();
-                        if (prod) {
-                            const newStock = Math.max(0, (prod.stock || 0) - (item.quantity || 1));
-                            await supabase.from(PRODUCTS_TABLE).update({ stock: newStock }).eq('id', item.product_id);
-                        }
-                    }
+                if (!item.product_id) continue;
+                const { data: prod } = await supabase.from(PRODUCTS_TABLE).select('stock').eq('id', item.product_id).single();
+                if (prod) {
+                    const nStock = Math.max(0, Number(prod.stock || 0) - Number(item.quantity || 1));
+                    await supabase.from(PRODUCTS_TABLE).update({ stock: nStock }).eq('id', item.product_id);
                 }
             }
-        } catch (err) {
-            console.warn('[orders] Error al descontar stock:', err);
-        }
+        } catch (e) { console.warn('[stock] Error descontando stock:', e); }
     }
 
-    // Reponer inventario al cancelar/eliminar
     async function manejarDevolucionStock(ordenId) {
         try {
             const { data: items } = await supabase.from(ORDER_ITEMS_TABLE).select('product_id, quantity').eq('order_id', ordenId);
             if (!items || !items.length) return;
 
             for (const item of items) {
-                if (item.product_id) {
-                    const { error: rpcErr } = await supabase.rpc('increment_product_stock', { p_id: item.product_id, p_qty: item.quantity });
-                    if (rpcErr) {
-                        const { data: prod } = await supabase.from(PRODUCTS_TABLE).select('stock').eq('id', item.product_id).single();
-                        if (prod) {
-                            const newStock = (prod.stock || 0) + (item.quantity || 1);
-                            await supabase.from(PRODUCTS_TABLE).update({ stock: newStock }).eq('id', item.product_id);
-                        }
-                    }
+                if (!item.product_id) continue;
+                const { data: prod } = await supabase.from(PRODUCTS_TABLE).select('stock').eq('id', item.product_id).single();
+                if (prod) {
+                    const nStock = Number(prod.stock || 0) + Number(item.quantity || 1);
+                    await supabase.from(PRODUCTS_TABLE).update({ stock: nStock }).eq('id', item.product_id);
                 }
             }
-        } catch (err) {
-            console.warn('[orders] Error al devolver stock:', err);
-        }
+        } catch (e) { console.warn('[stock] Error devolviendo stock:', e); }
     }
 
-    function filterRowsByBrand(rows, tab) {
-        if (!tab || tab === 'todas') return rows;
-        const knownTabs = ['heartbeef', 'green-leaf', 'otros'];
-        if (knownTabs.includes(tab)) {
-            return rows.filter((row) => row.brand === tab);
-        }
-        const normalizedTag = tab.replace(/-/g, ' ').toLowerCase();
-        return rows.filter((row) => {
-            const haystack = `${row.entity || ''} ${row.raw?.customer_name || ''} ${row.raw?.delivery_notes || ''}`.toLowerCase();
-            return haystack.includes(normalizedTag);
+    // 9. Modal de "Crear Nueva Orden / Transacción Manual"
+    function openCreateOrderModal() {
+        cartItems = [];
+        activeDeliveryType = 'tienda';
+        const savedEntities = getSavedEntities();
+
+        const modalOverlay = document.getElementById('transaction-modal') || document.getElementById('manual-order-modal');
+        if (!modalOverlay) return;
+
+        modalOverlay.innerHTML = `
+            <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 w-full max-w-xl mx-auto shadow-2xl space-y-5 text-zinc-200 animate-fadeIn max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-400">add_shopping_cart</span> Nueva Orden Manual
+                    </h3>
+                    <button id="modal-close-x" class="text-zinc-400 hover:text-white material-symbols-outlined cursor-pointer">close</button>
+                </div>
+
+                <!-- Fila 1: Tipo de Registro & Pertenencia -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Tipo de Registro</label>
+                        <select id="modal-order-type" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Sale (Venta)">Order / Venta</option>
+                            <option value="Bill (Gasto)">Bill / Gasto</option>
+                            <option value="Transferencia">Transferencia Directa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">A qué pertenece</label>
+                        <select id="modal-brand-belonging" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Heartbeef">Heartbeef</option>
+                            <option value="Green Leaf">Green Leaf</option>
+                            <option value="Otros">Otros (Persona / Particular)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Cliente / Proveedor (Con historial guardado) -->
+                <div>
+                    <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Cliente / Proveedor</label>
+                    <input id="modal-customer-input" list="saved-entities-list" type="text" placeholder="Ingresa o selecciona cliente/proveedor..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" />
+                    <datalist id="saved-entities-list">
+                        ${savedEntities.map(ent => `<option value="${escapeHtml(ent)}">`).join('')}
+                    </datalist>
+                </div>
+
+                <!-- Buscador Inteligente de Productos -->
+                <div class="relative">
+                    <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Agregar Productos (Buscador Inteligente)</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-zinc-500 text-sm">search</span>
+                        <input id="modal-product-search" type="text" placeholder="Buscar producto por nombre o SKU..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500" />
+                    </div>
+                    <div id="modal-search-results" class="hidden absolute z-50 left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-xl max-h-48 overflow-y-auto shadow-2xl"></div>
+                </div>
+
+                <!-- Carrito de Productos (Estilo "Tu Carrito") -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-emerald-400">shopping_bag</span> Tu Carrito
+                        </span>
+                        <span id="cart-item-count" class="text-xs text-zinc-500">0 ítems</span>
+                    </div>
+                    <div id="cart-items-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <p class="text-xs text-zinc-500 text-center py-6 border border-dashed border-zinc-800 rounded-2xl">No hay productos en el carrito. Utiliza el buscador arriba.</p>
+                    </div>
+                </div>
+
+                <!-- Tipo de Entrega (Retirar en tienda / Envío a domicilio) -->
+                <div>
+                    <label class="text-xs uppercase tracking-wider text-zinc-400 font-bold mb-2 block">Tipo de Entrega</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-delivery-tienda" type="button" class="delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold text-xs transition">
+                            <span class="material-symbols-outlined text-base">storefront</span> Retirar en tienda
+                        </button>
+                        <button id="btn-delivery-domicilio" type="button" class="delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-800 bg-zinc-900/60 text-zinc-400 font-bold text-xs transition">
+                            <span class="material-symbols-outlined text-base">local_shipping</span> Envío a domicilio
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Detalle de Transferencia y Monto Total -->
+                <div class="grid grid-cols-2 gap-3 border-t border-zinc-800 pt-4">
+                    <div>
+                        <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Detalle / Ref. Transferencia</label>
+                        <input id="modal-transfer-detail" type="text" placeholder="Nro. Comprobante o Ref..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Monto Total (Bs.)</label>
+                        <input id="modal-total-amount" type="number" step="0.01" placeholder="0.00" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-emerald-400 font-bold focus:outline-none focus:border-emerald-500" />
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex justify-end gap-3 pt-2">
+                    <button id="modal-cancel-btn" type="button" class="px-5 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:bg-zinc-900 text-sm font-semibold transition">Cancelar</button>
+                    <button id="modal-save-btn" type="button" class="px-6 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 hover:bg-emerald-400 text-sm font-bold flex items-center gap-2 transition shadow-lg">
+                        <span class="material-symbols-outlined text-base">check</span> Guardar Orden
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modalOverlay.classList.remove('hidden');
+        modalOverlay.classList.add('flex');
+
+        initModalCartLogic(modalOverlay);
+    }
+
+    // 10. Lógica de Eventos del Modal y Carrito estilo Tu Carrito
+    function initModalCartLogic(modalOverlay) {
+        const closeX = document.getElementById('modal-close-x');
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+        const saveBtn = document.getElementById('modal-save-btn');
+        const searchInput = document.getElementById('modal-product-search');
+        const searchResults = document.getElementById('modal-search-results');
+        const btnTienda = document.getElementById('btn-delivery-tienda');
+        const btnDomicilio = document.getElementById('btn-delivery-domicilio');
+
+        const closeModal = () => {
+            modalOverlay.classList.add('hidden');
+            modalOverlay.classList.remove('flex');
+        };
+
+        closeX?.addEventListener('click', closeModal);
+        cancelBtn?.addEventListener('click', closeModal);
+
+        // Selección de Tipo de Entrega
+        btnTienda?.addEventListener('click', () => {
+            activeDeliveryType = 'tienda';
+            btnTienda.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold text-xs transition";
+            btnDomicilio.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-800 bg-zinc-900/60 text-zinc-400 font-bold text-xs transition";
+        });
+
+        btnDomicilio?.addEventListener('click', () => {
+            activeDeliveryType = 'domicilio';
+            btnDomicilio.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold text-xs transition";
+            btnTienda.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-800 bg-zinc-900/60 text-zinc-400 font-bold text-xs transition";
+        });
+
+        // Buscador Inteligente
+        searchInput?.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                searchResults.classList.add('hidden');
+                return;
+            }
+
+            const matches = availableProducts.filter(p =>
+                p.name?.toLowerCase().includes(query) || p.sku?.toLowerCase().includes(query)
+            );
+
+            if (!matches.length) {
+                searchResults.innerHTML = `<div class="p-3 text-xs text-zinc-500 text-center">No se encontraron productos match.</div>`;
+            } else {
+                searchResults.innerHTML = matches.map(p => `
+                    <div data-id="${p.id}" class="search-product-row flex items-center justify-between p-2.5 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.image_url || 'https://via.placeholder.com/40'}" class="w-8 h-8 rounded-lg object-cover" />
+                            <div>
+                                <p class="text-xs font-semibold text-white">${escapeHtml(p.name)}</p>
+                                <p class="text-[10px] text-zinc-400">SKU: ${escapeHtml(p.sku || 'S/N')}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-400">Bs. ${Number(p.price || 0).toFixed(2)}</span>
+                    </div>
+                `).join('');
+
+                searchResults.querySelectorAll('.search-product-row').forEach(row => {
+                    row.addEventListener('click', () => {
+                        const prod = availableProducts.find(p => String(p.id) === row.dataset.id);
+                        if (prod) addProductToCartModal(prod);
+                        searchResults.classList.add('hidden');
+                        searchInput.value = '';
+                    });
+                });
+            }
+            searchResults.classList.remove('hidden');
+        });
+
+        // Guardar la orden en Supabase
+        saveBtn?.addEventListener('click', async () => {
+            const customerInput = document.getElementById('modal-customer-input').value.trim();
+            const orderType = document.getElementById('modal-order-type').value;
+            const brandBelonging = document.getElementById('modal-brand-belonging').value;
+            const transferDetail = document.getElementById('modal-transfer-detail').value.trim();
+            const amountInput = parseFloat(document.getElementById('modal-total-amount').value) || 0;
+
+            if (!customerInput) {
+                alert('Por favor, ingresa el nombre del Cliente o Proveedor.');
+                return;
+            }
+            if (amountInput <= 0) {
+                alert('El monto total debe ser superior a Bs. 0.00');
+                return;
+            }
+
+            // Guardar cliente en historial
+            saveEntityToHistory(customerInput);
+
+            const entityFormatted = brandBelonging !== 'Otros' ? `${customerInput} (${brandBelonging})` : customerInput;
+            const newOrderPayload = {
+                order_code: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
+                customer_name: entityFormatted,
+                payment_method: `${orderType} | ${transferDetail || 'Directo'}`,
+                delivery_type: activeDeliveryType === 'tienda' ? 'Retirar en tienda' : 'Envío a domicilio',
+                delivery_notes: `A pertenece a: ${brandBelonging}. Ref: ${transferDetail || 'N/A'}`,
+                total_amount: amountInput,
+                status: 'espera_aprobacion',
+            };
+
+            if (supabase) {
+                const { error } = await supabase.from(ORDER_TABLE).insert([newOrderPayload]);
+                if (error) {
+                    alert(`Error guardando la orden: ${error.message}`);
+                    return;
+                }
+            }
+
+            window.showToast?.('check_circle', 'Orden creada exitosamente', 'success');
+            closeModal();
+            await loadOrders();
         });
     }
 
-    function inferBrand(sale) {
-        const text = `${sale.order_code || ''} ${sale.customer_name || ''} ${sale.delivery_notes || ''}`.toLowerCase();
-        if (text.includes('heartbeef')) return 'heartbeef';
-        if (text.includes('green') || text.includes('leaf')) return 'green-leaf';
-        return 'otros';
+    // Agregar Producto al Carrito
+    function addProductToCartModal(prod) {
+        const found = cartItems.find(item => item.id === prod.id);
+        if (found) {
+            found.quantity += 1;
+        } else {
+            cartItems.push({
+                id: prod.id,
+                name: prod.name,
+                price: Number(prod.price || 0),
+                quantity: 1,
+                image_url: prod.image_url,
+            });
+        }
+        renderCartUI();
+    }
+
+    // Renderizar la UI exacta de "Tu Carrito"
+    function renderCartUI() {
+        const container = document.getElementById('cart-items-container');
+        const itemCountLabel = document.getElementById('cart-item-count');
+        const amountInput = document.getElementById('modal-total-amount');
+
+        if (!container) return;
+
+        if (!cartItems.length) {
+            container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-6 border border-dashed border-zinc-800 rounded-2xl">No hay productos en el carrito. Utiliza el buscador arriba.</p>`;
+            if (itemCountLabel) itemCountLabel.textContent = '0 ítems';
+            return;
+        }
+
+        let totalCartSum = 0;
+        let totalItemsQty = 0;
+
+        container.innerHTML = cartItems.map((item, index) => {
+            const lineTotal = item.price * item.quantity;
+            totalCartSum += lineTotal;
+            totalItemsQty += item.quantity;
+
+            return `
+                <div class="flex items-center justify-between p-3 bg-zinc-900/80 border border-zinc-800 rounded-2xl transition hover:border-zinc-700">
+                    <div class="flex items-center gap-3">
+                        <img src="${item.image_url || 'https://via.placeholder.com/48'}" class="w-11 h-11 rounded-xl object-cover border border-zinc-800" />
+                        <div>
+                            <p class="text-xs font-bold text-white leading-snug">${escapeHtml(item.name)}</p>
+                            <p class="text-[11px] text-zinc-400 font-medium mt-0.5">Bs. ${item.price.toFixed(2)} c/u</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-xl p-1">
+                            <button type="button" data-index="${index}" data-delta="-1" class="cart-qty-btn w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center transition">-</button>
+                            <span class="text-xs font-bold px-2 text-white">${item.quantity}</span>
+                            <button type="button" data-index="${index}" data-delta="1" class="cart-qty-btn w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center transition">+</button>
+                        </div>
+                        <span class="text-xs font-extrabold text-emerald-400 w-20 text-right">Bs. ${lineTotal.toFixed(2)}</span>
+                    </div>
+                </div>`;
+        }).join('');
+
+        if (itemCountLabel) itemCountLabel.textContent = `${totalItemsQty} ítem(s)`;
+        if (amountInput) amountInput.value = totalCartSum.toFixed(2);
+
+        // Listeners para botones + / -
+        container.querySelectorAll('.cart-qty-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.currentTarget.dataset.index, 10);
+                const delta = parseInt(e.currentTarget.dataset.delta, 10);
+
+                if (cartItems[idx]) {
+                    cartItems[idx].quantity += delta;
+                    if (cartItems[idx].quantity <= 0) {
+                        cartItems.splice(idx, 1);
+                    }
+                    renderCartUI();
+                }
+            });
+        });
+    }
+
+    // 11. Utilidades y Guardado de Historial
+    function saveEntityToHistory(name) {
+        if (!name) return;
+        let list = getSavedEntities();
+        if (!list.includes(name)) {
+            list.unshift(name);
+            localStorage.setItem('pv_saved_customers', JSON.stringify(list.slice(0, 15)));
+        }
+    }
+
+    function getSavedEntities() {
+        return JSON.parse(localStorage.getItem('pv_saved_customers') || '["Heartbeef", "Green Leaf", "Distribuidora Vegana Oriente", "Mariela Justiniano"]');
     }
 
     function updateKpis(rows) {
-        const pending = rows.filter((row) => ['pendiente', 'espera_aprobacion', 'draft'].includes(String(row.status).toLowerCase())).length;
-        const counts = rows.reduce((acc, row) => {
-            const key = row.brand || 'otros';
-            acc[key] = (acc[key] || 0) + 1;
-            return acc;
-        }, {});
-        const leader = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
-        const labels = { heartbeef: 'Heartbeef', 'green-leaf': 'Green Leaf', otros: 'Otros', '-': '-' };
-        
+        const pendingCount = rows.filter(r => ['pendiente', 'espera_aprobacion', 'espera-aprobacion', 'draft'].includes(String(r.status).toLowerCase())).length;
         const kpiTotal = document.getElementById('kpi-total-orders');
         const kpiPending = document.getElementById('kpi-pending-orders');
-        const kpiLeader = document.getElementById('kpi-leader-brand');
-        
+
         if (kpiTotal) kpiTotal.textContent = rows.length;
-        if (kpiPending) kpiPending.textContent = pending;
-        if (kpiLeader) kpiLeader.textContent = labels[leader] || leader;
+        if (kpiPending) kpiPending.textContent = pendingCount;
     }
 
-    function openBrandPrompt() {
-        const rawLabel = prompt('Ingresa el nombre de la empresa o marca para filtrar:');
-        const label = String(rawLabel || '').trim();
-        if (!label) return;
-        const slug = label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
-        if (!slug) return;
-
-        if (document.getElementById(`tab-${slug}`)) {
-            if (typeof window.switchTab === 'function') window.switchTab(slug);
-            return;
-        }
-
-        const container = document.getElementById('orders-filter-actions');
-        if (!container) return;
-
-        const button = document.createElement('button');
-        button.id = `tab-${slug}`;
-        button.dataset.brand = slug;
-        button.type = 'button';
-        button.className = 'order-tab px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold border border-zinc-700';
-        button.textContent = label;
-        button.addEventListener('click', () => {
-            if (typeof window.switchTab === 'function') window.switchTab(slug);
-        });
-        container.appendChild(button);
-        if (typeof window.switchTab === 'function') window.switchTab(slug);
-    }
+    let currentOrderToConfirm = null;
 
     async function searchOrderCode() {
         const code = codeInput?.value.trim().toUpperCase();
-        currentCodeSale = null;
-        if (confirmBtn) confirmBtn.disabled = true;
-
-        if (!code) {
-            renderCodeResult('warning', 'Ingresa un código de venta.');
-            return;
-        }
-        if (!supabase) {
-            renderCodeResult('error', 'Supabase no está disponible en esta sesión.');
-            return;
-        }
+        if (!code || !supabase) return;
 
         try {
-            const order = await fetchOrderWithItemsByCode(code);
-            currentCodeSale = order;
-            if (confirmBtn) confirmBtn.disabled = ['confirmado', 'completada'].includes(order.status);
-            renderOrderCodeResult(order);
-        } catch (error) {
-            console.error('[orders] Error buscando código:', error);
-            renderCodeResult('error', error.message || 'No se encontró el ticket.');
+            confirmBtn.disabled = true;
+            currentOrderToConfirm = null;
+
+            const { data, error } = await supabase.from(ORDER_TABLE).select('*').eq('order_code', code).single();
+            if (error || !data) throw new Error('Código de orden no encontrado.');
+
+            if (codeResult) {
+                codeResult.classList.remove('hidden');
+                
+                const isPending = ['pendiente', 'espera_aprobacion'].includes(String(data.status).toLowerCase());
+                
+                codeResult.innerHTML = `<div class="p-4 bg-zinc-900 rounded-xl border ${isPending ? 'border-emerald-500/50' : 'border-zinc-800'} text-xs text-zinc-200 space-y-2">
+                    <div class="flex justify-between items-center border-b border-zinc-800 pb-2 mb-2">
+                        <span class="font-bold text-emerald-400 text-sm">Ticket: ${escapeHtml(data.order_code)}</span>
+                        <span class="px-2 py-1 rounded-full text-[10px] font-bold ${isPending ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-800 text-zinc-400'}">${escapeHtml(data.status)}</span>
+                    </div>
+                    <p><strong>Cliente:</strong> ${escapeHtml(data.customer_name)}</p>
+                    <p><strong>Teléfono:</strong> ${escapeHtml(data.customer_phone || 'N/A')}</p>
+                    <p><strong>Método Entrega:</strong> ${escapeHtml(data.delivery_type)}</p>
+                    <p><strong>Método Pago:</strong> ${escapeHtml(data.payment_method)}</p>
+                    <p><strong>Notas:</strong> ${escapeHtml(data.delivery_notes || 'Ninguna')}</p>
+                    <p class="text-sm font-bold text-emerald-400 pt-2 border-t border-zinc-800">Total a Pagar: Bs. ${Number(data.total_amount).toFixed(2)}</p>
+                </div>`;
+
+                if (isPending) {
+                    currentOrderToConfirm = data.id;
+                    confirmBtn.disabled = false;
+                }
+            }
+        } catch (e) {
+            if (codeResult) {
+                codeResult.classList.remove('hidden');
+                codeResult.innerHTML = `<p class="text-xs text-red-400 p-2 border border-red-500/20 bg-red-500/10 rounded-xl">${e.message}</p>`;
+            }
         }
     }
 
     async function confirmCurrentOrder() {
-        if (!currentCodeSale || !supabase || !confirmBtn) return;
-        const originalHtml = confirmBtn.innerHTML;
-        confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>Confirmando...';
+        if (!currentOrderToConfirm || !supabase) return;
 
         try {
-            await cambiarEstadoOrden(currentCodeSale.id, 'aprobado');
-            window.showToast?.('check_circle', 'Pago registrado y orden aprobada correctamente.', 'success');
-            await searchOrderCode();
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `<div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-zinc-950 border-t-transparent"></div> Procesando...`;
+
+            const { data, error } = await supabase.rpc('confirm_order', {
+                p_order_id: currentOrderToConfirm
+            });
+
+            if (error) throw error;
+
+            window.showToast?.('check_circle', '¡Pago registrado! El stock ha sido descontado correctamente.', 'success');
+            
+            // Limpiar y resetear UI
+            currentOrderToConfirm = null;
+            codeInput.value = '';
+            if (codeResult) codeResult.classList.add('hidden');
+            
+            confirmBtn.innerHTML = `<span class="material-symbols-outlined text-lg">payments</span> Registrar Pago`;
+            
+            // Recargar la tabla
             await loadOrders();
-        } catch (error) {
-            console.error('[orders] Error confirmando venta:', error);
-            window.showToast?.('error', `No se pudo confirmar: ${error.message}`, 'error');
+        } catch (err) {
+            console.error('[orders] Error al confirmar orden:', err);
+            window.showToast?.('error', err.message || 'Error al procesar el pago y stock.', 'error');
             confirmBtn.disabled = false;
-        } finally {
-            confirmBtn.innerHTML = originalHtml;
+            confirmBtn.innerHTML = `<span class="material-symbols-outlined text-lg">payments</span> Registrar Pago`;
         }
     }
 
     async function openTransactionDetail(orderId) {
-        const matchingRow = currentRows.find((row) => row.raw?.id === orderId) || currentRows.find((row) => row.id === orderId);
-        const sale = matchingRow?.raw;
-        if (!supabase || !sale) {
-            const mock = createMockSaleDetail(orderId);
-            openTransactionModal('Detalle de Transacción', buildSaleDetailHtml(mock));
-            return;
-        }
-
-        try {
-            const detail = await fetchOrderWithItemsByCode(sale.order_code || sale.id);
-            if (!detail.items?.length) {
-                const mock = createMockSaleDetail(detail.order_code || sale.order_code || sale.id, sale);
-                openTransactionModal(`Ticket ${escapeHtml(detail.order_code || sale.order_code || sale.id)}`, buildSaleDetailHtml(mock));
-                return;
-            }
-            openTransactionModal(`Ticket ${escapeHtml(detail.order_code)}`, buildSaleDetailHtml(detail));
-        } catch (error) {
-            const mock = createMockSaleDetail(orderId, sale);
-            openTransactionModal('Detalle de Transacción', buildSaleDetailHtml(mock));
-        }
-    }
-
-    function createMockSaleDetail(orderId, sale = {}) {
-        const sampleProducts = [
-            { sku: 'HB-101', name: 'Hamburguesa Heartbeef', unit_price: 78.50 },
-            { sku: 'GL-022', name: 'Ensalada Green Leaf', unit_price: 42.00 },
-            { sku: 'PV-009', name: 'Paquete Vegan Snack', unit_price: 25.00 },
-            { sku: 'PV-011', name: 'Bebida Natural', unit_price: 18.75 },
-        ];
-        const baseItems = sale.items?.length ? sale.items : [
-            { quantity: 2, unit_price: 78.50, products: { name: 'Hamburguesa Heartbeef', sku: 'HB-101', category: 'Heartbeef' } },
-            { quantity: 1, unit_price: 42.00, products: { name: 'Ensalada Green Leaf', sku: 'GL-022', category: 'Green Leaf' } },
-        ];
-        const items = baseItems.map((item, index) => {
-            if (!item.products) {
-                const product = sampleProducts[index % sampleProducts.length];
-                return { quantity: item.quantity || 1, unit_price: item.unit_price || product.unit_price, products: product };
-            }
-            return item;
-        });
-
-        const subtotal = roundBs(items.reduce((sum, item) => sum + Number(item.unit_price || 0) * Number(item.quantity || 0), 0));
-        const taxes = roundBs(subtotal * 0.16);
-        const total = roundBs(subtotal + taxes);
-        const when = sale.created_at ? new Date(sale.created_at) : new Date();
-
-        return {
-            order_code: orderId || sale.order_code || `MOCK-${Date.now()}`,
-            customer_name: sale.customer_name || sale.entity || 'Cliente Demo',
-            customer_phone: sale.customer_phone || 'N/A',
-            payment_method: sale.payment_method || 'Pago Móvil',
-            status: sale.status || 'Pendiente',
-            delivery_type: sale.delivery_type || 'Retiro en tienda',
-            delivery_notes: sale.delivery_notes || 'Mock data generado automáticamente',
-            created_at: when.toISOString(),
-            items,
-            subtotal,
-            taxes,
-            total_amount: total,
-        };
-    }
-
-    async function fetchOrderWithItemsByCode(code) {
-        const { data: order, error: orderError } = await supabase
-            .from(ORDER_TABLE)
-            .select('id, order_code, customer_name, customer_phone, delivery_type, delivery_notes, payment_method, total_amount, status, created_at')
-            .eq('order_code', code)
-            .single();
-
-        if (orderError || !order) {
-            throw new Error('Ticket no encontrado.');
-        }
-
-        const itemsResult = await supabase
-            .from(ORDER_ITEMS_TABLE)
-            .select('quantity, unit_price, products(name, sku, category)')
-            .eq('order_id', order.id);
-
-        if (itemsResult.error) throw itemsResult.error;
-
-        return { ...order, items: itemsResult.data || [] };
-    }
-
-    function renderOrderCodeResult(sale) {
-        renderCodeResult('success', buildSaleDetailHtml(sale));
-    }
-
-    function renderCodeResult(type, content) {
-        if (!codeResult) return;
-        codeResult.classList.remove('hidden');
-        const color = type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-amber-400' : 'text-zinc-300';
-        codeResult.innerHTML = content.includes('<') ? content : `<p class="${color}">${escapeHtml(content)}</p>`;
-    }
-
-    function openTransactionModal(title, body) {
-        const modalTitle = document.getElementById('transaction-modal-title');
-        const modalBody = document.getElementById('transaction-modal-body');
-        const modal = document.getElementById('transaction-modal');
-
-        if (modalTitle) modalTitle.textContent = title;
-        if (modalBody) modalBody.innerHTML = body;
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-    }
-
-    function closeTransactionModal() {
-        const modal = document.getElementById('transaction-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
+        alert(`Mostrando detalle de la transacción: ${orderId}`);
     }
 
     function exportVisibleRows() {
-        const rows = currentRows.length ? currentRows : mockOrders;
-        const csv = ['ID,Cliente/Proveedor,Tipo,Monto Bs,Estado']
-            .concat(rows.map((row) => `${row.id},${row.entity},${row.type},${roundBs(row.amount).toFixed(2)},${row.status}`))
+        const csv = ['ID,Cliente,Tipo,Monto,Estado']
+            .concat(currentRows.map(r => `${r.id},${r.entity},${r.type},${r.amount},${r.status}`))
             .join('\n');
-        const link = document.createElement('a');
-        link.href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-        link.download = 'Historial_Ventas_PremVida.csv';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Ordenes_PremVida.csv';
+        a.click();
     }
 
-    function roundBs(value) {
-        return Math.round((Number(value) || 0) * 100) / 100;
-    }
-
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function buildSaleDetailHtml(sale) {
-        const issueDate = new Date(sale.created_at || Date.now()).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' });
-        const items = sale.items || [];
-        const itemsHtml = items.map((item) => {
-            const product = item.products || {};
-            const quantity = Number(item.quantity || 1);
-            const unitPrice = roundBs(Number(item.unit_price || 0));
-            const lineTotal = roundBs(quantity * unitPrice);
-            return `
-                <tr class="border-b border-zinc-800/70">
-                    <td class="px-4 py-3 text-sm text-zinc-300">${escapeHtml(product.name || 'Producto')}</td>
-                    <td class="px-4 py-3 text-sm text-zinc-300">${escapeHtml(product.sku || '')}</td>
-                    <td class="px-4 py-3 text-sm text-zinc-300">${quantity}</td>
-                    <td class="px-4 py-3 text-sm text-zinc-300">Bs. ${unitPrice.toFixed(2)}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-emerald-400">Bs. ${lineTotal.toFixed(2)}</td>
-                </tr>`;
-        }).join('');
-
-        const subtotal = roundBs(sale.subtotal ?? items.reduce((sum, item) => sum + Number(item.quantity || 0) * roundBs(Number(item.unit_price || 0)), 0));
-        const taxes = roundBs(sale.taxes ?? subtotal * 0.16);
-        const total = roundBs(sale.total_amount ?? subtotal + taxes);
-
-        return `
-            <section class="space-y-6">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <div>
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">Tipo de Orden</p>
-                        <h2 class="text-2xl font-bold text-white">${escapeHtml(sale.status && sale.status.toLowerCase().includes('gasto') ? 'Bill / Gasto' : 'Venta')}</h2>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">ID de Orden</p>
-                        <p class="text-lg font-semibold text-white">${escapeHtml(sale.order_code || sale.id)}</p>
-                    </div>
-                </div>
-
-                <div class="grid sm:grid-cols-2 gap-4 mb-6">
-                    <div class="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-4">
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">Cliente / Proveedor</p>
-                        <p class="mt-2 text-sm font-medium text-white">${escapeHtml(sale.customer_name || sale.entity || 'Cliente Demo')}</p>
-                        <p class="text-xs text-zinc-500 mt-1">${escapeHtml(sale.customer_phone || 'N/A')}</p>
-                    </div>
-                    <div class="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-4">
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">Fecha de Emisión</p>
-                        <p class="mt-2 text-sm font-medium text-white">${escapeHtml(issueDate)}</p>
-                        <p class="text-xs text-zinc-500 mt-1">${escapeHtml(sale.payment_method || 'Pago Móvil')}</p>
-                    </div>
-                    <div class="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-4">
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">Método de Pago</p>
-                        <p class="mt-2 text-sm font-medium text-white">${escapeHtml(sale.payment_method || 'Pago Móvil')}</p>
-                    </div>
-                    <div class="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-4">
-                        <p class="text-xs uppercase tracking-widest text-zinc-500">Estado</p>
-                        <p class="mt-2 text-sm font-medium ${sale.status && sale.status.toLowerCase().includes('pendiente') ? 'text-amber-300' : 'text-emerald-400'}">${escapeHtml(sale.status || 'Pendiente')}</p>
-                    </div>
-                </div>
-
-                <div class="rounded-3xl border border-zinc-800 overflow-hidden">
-                    <table class="w-full border-collapse text-left text-sm">
-                        <thead class="bg-zinc-950/90 text-zinc-400 uppercase text-xs tracking-[0.15em]">
-                            <tr>
-                                <th class="px-4 py-3">Producto</th>
-                                <th class="px-4 py-3">SKU</th>
-                                <th class="px-4 py-3">Cantidad</th>
-                                <th class="px-4 py-3">Precio Unitario</th>
-                                <th class="px-4 py-3">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-zinc-950/80">
-                            ${itemsHtml || '<tr><td colspan="5" class="px-4 py-6 text-center text-zinc-500">No hay ítems registrados en esta orden.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                    <div class="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-4 text-sm text-zinc-300">
-                        <p class="font-semibold text-white mb-2">Notas:</p>
-                        <p>${escapeHtml(sale.delivery_notes || 'No hay notas adicionales.')}</p>
-                    </div>
-                    <div class="rounded-2xl bg-zinc-950/70 border border-emerald-500/20 p-4 text-sm text-zinc-300">
-                        <div class="flex justify-between mb-3"><span>Subtotal</span><span>Bs. ${subtotal.toFixed(2)}</span></div>
-                        <div class="flex justify-between mb-3"><span>Impuestos (16%)</span><span>Bs. ${taxes.toFixed(2)}</span></div>
-                        <div class="border-t border-zinc-800 pt-3 flex justify-between font-semibold text-white"><span>Total</span><span>Bs. ${total.toFixed(2)}</span></div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-6 no-print">
-                    <button type="button" onclick="window.print()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-600">
-                        <span class="material-symbols-outlined">print</span>
-                        Imprimir Factura
-                    </button>
-                </div>
-            </section>`;
-    }
+    function roundBs(v) { return Math.round((Number(v) || 0) * 100) / 100; }
+    function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 });

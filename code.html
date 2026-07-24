@@ -339,22 +339,26 @@
 
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-2 col-span-2">
-                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Product Name</label>
-                            <input id="new-product-name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="e.g. Cashew Milk 1L" type="text"/>
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Nombre del Producto</label>
+                            <input id="new-product-name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="ej. Leche de Almendras 1L" type="text"/>
+                        </div>
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">URL de Imagen (Opcional)</label>
+                            <input id="new-product-image-url" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="https://ejemplo.com/imagen.jpg" type="url"/>
                         </div>
                         <div class="space-y-2">
                             <label class="text-label-md font-label-md text-on-surface-variant uppercase">SKU Code</label>
-                            <input id="new-product-sku" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="e.g. PV-VG-9021" type="text"/>
+                            <input id="new-product-sku" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" placeholder="ej. PV-VG-9021" type="text"/>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Category</label>
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">Categoría</label>
                             <select id="new-product-category" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface">
-                                <option value="Dairy-Free" class="bg-surface">Dairy-Free</option>
-                                <option value="Confectionery" class="bg-surface">Confectionery</option>
-                                <option value="Beverage" class="bg-surface">Beverage</option>
-                                <option value="Bakery" class="bg-surface">Bakery</option>
-                                <option value="Vegan Meat" class="bg-surface">Vegan Meat</option>
-                                <option value="Other" class="bg-surface">Other</option>
+                                <option value="Vegano / Sustitutos" class="bg-surface">Vegano / Sustitutos</option>
+                                <option value="Bebidas" class="bg-surface">Bebidas</option>
+                                <option value="Cocina / Despensa" class="bg-surface">Cocina / Despensa</option>
+                                <option value="Repostería y Panadería" class="bg-surface">Repostería y Panadería</option>
+                                <option value="Golosinas / Snacking" class="bg-surface">Golosinas / Snacking</option>
+                                <option value="Otros" class="bg-surface">Otros</option>
                             </select>
                         </div>
                         <div class="space-y-2">
@@ -872,7 +876,7 @@
                 sale_price: rawSalePrice !== null ? Math.round(rawSalePrice * 100) / 100 : null,
                 stock: parseInt(document.getElementById('new-product-stock').value) || 0,
                 description: document.getElementById('new-product-description').value.trim(),
-                image_url: imageUrl || DEFAULT_IMG
+                image_url: document.getElementById('new-product-image-url').value.trim() || imageUrl || DEFAULT_IMG
             };
 
             await insertProduct(state.supabase, productData);
@@ -989,15 +993,15 @@
             // Lógica de colores para categorías
             let catBadgeClass = 'bg-white/10 text-on-surface-variant';
             const cat = String(p.category || 'Otros').toLowerCase();
-            if (cat.includes('dairy') || cat.includes('queso') || cat.includes('lacte') || cat.includes('brie')) {
+            if (cat.includes('vegan') || cat.includes('sustituto')) {
                 catBadgeClass = 'bg-primary/10 text-primary';
-            } else if (cat.includes('confect') || cat.includes('dulce') || cat.includes('truff') || cat.includes('choc')) {
+            } else if (cat.includes('golosina') || cat.includes('snack')) {
                 catBadgeClass = 'bg-secondary/10 text-secondary';
-            } else if (cat.includes('bever') || cat.includes('bebida') || cat.includes('vital') || cat.includes('jugo')) {
+            } else if (cat.includes('bebida') || cat.includes('jugo')) {
                 catBadgeClass = 'bg-blue-500/10 text-blue-400';
-            } else if (cat.includes('meat') || cat.includes('carne') || cat.includes('protein')) {
+            } else if (cat.includes('cocina') || cat.includes('despensa')) {
                 catBadgeClass = 'bg-red-500/10 text-red-400';
-            } else if (cat.includes('bake') || cat.includes('pan') || cat.includes('repost')) {
+            } else if (cat.includes('repost') || cat.includes('pan')) {
                 catBadgeClass = 'bg-amber-500/10 text-amber-400';
             }
 
@@ -1011,12 +1015,15 @@
             if (p.stock === 0) {
                 stockColorClass = 'bg-red-500';
                 stockLabel = 'Sin Stock (Agotado)';
-            } else if (p.stock < 5) {
+            } else if (p.stock <= 5) {
                 stockColorClass = 'bg-red-400';
                 stockLabel = `⚠ Crítico (${p.stock})`;
-            } else if (p.stock < 15) {
+            } else if (p.stock >= 35) {
+                stockColorClass = 'bg-primary';
+                stockLabel = `Stock Lleno (${p.stock})`;
+            } else {
                 stockColorClass = 'bg-secondary';
-                stockLabel = `Bajo Stock (${p.stock})`;
+                stockLabel = `Stock Normal (${p.stock})`;
             }
 
             return `
@@ -1246,8 +1253,9 @@
 
         document.getElementById('edit-product-id').value       = product.id;
         document.getElementById('edit-product-name').value     = product.name || '';
+        document.getElementById('edit-product-image-url').value = product.image_url || '';
         document.getElementById('edit-product-sku').value      = product.sku  || '';
-        document.getElementById('edit-product-category').value = product.category || 'Other';
+        document.getElementById('edit-product-category').value = product.category || 'Otros';
         document.getElementById('edit-product-price').value    = parseFloat(product.price) || 0;
         document.getElementById('edit-product-sale-price').value = product.sale_price ? parseFloat(product.sale_price) : '';
         document.getElementById('edit-product-stock').value    = parseInt(product.stock) || 0;
@@ -1294,6 +1302,7 @@
 
                 const updateData = {
                     name:        document.getElementById('edit-product-name').value.trim(),
+                    image_url:   document.getElementById('edit-product-image-url').value.trim(),
                     sku:         document.getElementById('edit-product-sku').value.trim(),
                     category:    document.getElementById('edit-product-category').value,
                     price:       Math.round(rawPrice * 100) / 100,
@@ -1410,6 +1419,10 @@
                             <label class="text-label-md font-label-md text-on-surface-variant uppercase">Nombre del Producto</label>
                             <input id="edit-product-name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" type="text"/>
                         </div>
+                        <div class="space-y-2 col-span-2">
+                            <label class="text-label-md font-label-md text-on-surface-variant uppercase">URL de Imagen</label>
+                            <input id="edit-product-image-url" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" type="url"/>
+                        </div>
                         <div class="space-y-2">
                             <label class="text-label-md font-label-md text-on-surface-variant uppercase">SKU Code</label>
                             <input id="edit-product-sku" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface" type="text"/>
@@ -1417,12 +1430,12 @@
                         <div class="space-y-2">
                             <label class="text-label-md font-label-md text-on-surface-variant uppercase">Categoría</label>
                             <select id="edit-product-category" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm text-on-surface">
-                                <option value="Dairy-Free" class="bg-surface">Dairy-Free</option>
-                                <option value="Confectionery" class="bg-surface">Confectionery</option>
-                                <option value="Beverage" class="bg-surface">Beverage</option>
-                                <option value="Bakery" class="bg-surface">Bakery</option>
-                                <option value="Vegan Meat" class="bg-surface">Vegan Meat</option>
-                                <option value="Other" class="bg-surface">Other</option>
+                                <option value="Vegano / Sustitutos" class="bg-surface">Vegano / Sustitutos</option>
+                                <option value="Bebidas" class="bg-surface">Bebidas</option>
+                                <option value="Cocina / Despensa" class="bg-surface">Cocina / Despensa</option>
+                                <option value="Repostería y Panadería" class="bg-surface">Repostería y Panadería</option>
+                                <option value="Golosinas / Snacking" class="bg-surface">Golosinas / Snacking</option>
+                                <option value="Otros" class="bg-surface">Otros</option>
                             </select>
                         </div>
                         <div class="space-y-2">
