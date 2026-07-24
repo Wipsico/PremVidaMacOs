@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<<<<<<< HEAD
+
     <title>Prem Vida · Tienda Vegana | Caracas, Venezuela</title>
     <link rel="icon" type="image/png" href="assets/logo.png">
     <meta name="description" content="Tienda online de productos veganos premium en Venezuela. Delivery y retiro en tienda. Paga en Bs., Pago Móvil, QR o efectivo."/>
-=======
     <title>Prem Vida · Tienda Vegana | Bolivia</title>
     <meta name="description" content="Tienda online de productos veganos premium en Bolivia. Delivery y retiro en tienda. Paga en Bs., QR, transferencia o efectivo."/>
->>>>>>> bc075e9e410542370347f007027daa044117f052
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -250,12 +248,15 @@
     // ==========================================
     // 1. CREDENCIALES OFICIALES / FALLBACK PUBLICO
     // ==========================================
-    const SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
-    const FALLBACK_SUPABASE_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
-    const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
-    const SUPABASE_URL = localStorage.getItem('supabaseUrl') || FALLBACK_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = localStorage.getItem('supabaseKey') || FALLBACK_SUPABASE_ANON_KEY;
+    // ==========================================
+    // 1. CREDENCIALES Y CONFIGURACIÓN DE SUPABASE
+    // ==========================================
+    const DEFAULT_SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
+    const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
+    
+    const SUPABASE_URL = localStorage.getItem('supabaseUrl') || DEFAULT_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = localStorage.getItem('supabaseKey') || DEFAULT_SUPABASE_ANON_KEY;
+    
     const WHATSAPP_NUMBER   = '59170327181';
     const DELIVERY_FEE      = 5.00; 
     const CURRENCY          = 'Bs.';
@@ -267,7 +268,6 @@
         console.error('Error crítico al inicializar Supabase:', err);
         showToast('error', 'Error al inicializar la base de datos.', 'error');
     }
-
     // ==========================================
     // 2. ESTADO GLOBAL DE LA TIENDA
     // ==========================================
