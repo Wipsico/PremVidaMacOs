@@ -87,10 +87,15 @@
         <div class="flex-1 max-w-sm hidden md:block">
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
-                <input id="search-input" type="text" placeholder="Buscar productos veganos..." class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/60"/>
+                <input id="search-input" type="text" data-i18n-placeholder="store.navbar.searchPlaceholder" placeholder="Buscar productos veganos..." class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/60"/>
             </div>
         </div>
-        <button id="open-cart-btn" class="relative p-2.5 rounded-xl glass border border-white/10 hover:border-primary/40 hover:bg-primary/10 transition-all group" aria-label="Abrir carrito">
+        <div id="lang-toggle" class="flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-[11px] font-bold shrink-0" role="group" aria-label="Idioma / Language">
+            <button type="button" id="lang-btn-es" data-lang="es" class="px-2.5 py-1 rounded-full transition-colors">ES</button>
+            <span class="text-on-surface-variant/40">|</span>
+            <button type="button" id="lang-btn-en" data-lang="en" class="px-2.5 py-1 rounded-full transition-colors">EN</button>
+        </div>
+        <button id="open-cart-btn" class="relative p-2.5 rounded-xl glass border border-white/10 hover:border-primary/40 hover:bg-primary/10 transition-all group" data-i18n-aria-label="store.navbar.cartAria" aria-label="Abrir carrito">
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">shopping_cart</span>
             <span id="cart-badge" class="hidden absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-black text-[10px] font-bold rounded-full flex items-center justify-center shadow">0</span>
         </button>
@@ -111,7 +116,7 @@
         Del almacén a tu puerta. Pagos en <strong class="text-on-surface">Bs.</strong>, QR, transferencia o efectivo.
     </p>
     <div id="category-filters" class="flex flex-wrap justify-center gap-2 mt-8">
-        <button data-cat="all" class="cat-filter-btn active category-pill bg-primary/20 text-primary border border-primary/30">Todos</button>
+        <button data-cat="all" class="cat-filter-btn active category-pill bg-primary/20 text-primary border border-primary/30" data-i18n="store.filters.all">Todos</button>
     </div>
 </section>
 
@@ -142,7 +147,7 @@
     <div class="px-6 py-5 border-b border-white/10 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1;">shopping_cart</span>
-            <h2 class="font-bold text-lg text-on-surface">Tu Carrito</h2>
+            <h2 class="font-bold text-lg text-on-surface" data-i18n="store.cart.title">Tu Carrito</h2>
         </div>
         <button onclick="closeCart()" class="p-2 rounded-full hover:bg-white/10 transition-colors text-on-surface-variant">
             <span class="material-symbols-outlined">close</span>
@@ -153,40 +158,40 @@
             <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
                 <span class="material-symbols-outlined text-4xl text-on-surface-variant/40">shopping_basket</span>
             </div>
-            <p class="text-on-surface-variant font-medium">Tu carrito está vacío</p>
+            <p class="text-on-surface-variant font-medium" data-i18n="store.cart.empty">Tu carrito está vacío</p>
             <p class="text-on-surface-variant/50 text-sm">Agrega productos del catálogo</p>
         </div>
         <div id="cart-items-list" class="hidden space-y-3"></div>
     </div>
     <div id="cart-footer" class="shrink-0 border-t border-white/10 px-6 py-5 space-y-4">
         <div>
-            <p class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold mb-2">Tipo de Entrega</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold mb-2" data-i18n="store.checkout.deliveryType">Tipo de Entrega</p>
             <div class="grid grid-cols-2 gap-2">
                 <div class="delivery-option">
                     <input type="radio" name="delivery" id="delivery-pickup" value="pickup" class="sr-only" checked/>
                     <label for="delivery-pickup" class="block cursor-pointer border border-white/10 rounded-xl p-3 text-center text-sm font-medium transition-all hover:border-white/20 text-on-surface-variant">
                         <span class="material-symbols-outlined block mx-auto text-2xl mb-1">store</span>
-                        Retirar en tienda
+                        <span data-i18n="store.checkout.pickup">Retirar en tienda</span>
                     </label>
                 </div>
                 <div class="delivery-option">
                     <input type="radio" name="delivery" id="delivery-home" value="home" class="sr-only"/>
                     <label for="delivery-home" class="block cursor-pointer border border-white/10 rounded-xl p-3 text-center text-sm font-medium transition-all hover:border-white/20 text-on-surface-variant">
                         <span class="material-symbols-outlined block mx-auto text-2xl mb-1">local_shipping</span>
-                        Envío a domicilio
+                        <span data-i18n="store.checkout.delivery">Envío a domicilio</span>
                     </label>
                 </div>
             </div>
             <div id="delivery-details" class="hidden mt-3 space-y-2">
-                <input id="delivery-zone" type="text" placeholder="Zona / barrio / referencia de entrega" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/50"/>
+                <input id="delivery-zone" type="text" data-i18n-placeholder="store.checkout.zonePlaceholder" placeholder="Zona / barrio / referencia de entrega" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/50"/>
                 <div class="flex items-center gap-2 text-xs text-on-surface-variant">
                     <span class="material-symbols-outlined text-sm text-secondary">info</span>
-                    <span>Costo de envío: <strong class="text-on-surface" id="delivery-fee-display">Bs. 5.00</strong></span>
+                    <span data-i18n="store.checkout.deliveryCostLabel">Costo de envío:</span> <strong class="text-on-surface" id="delivery-fee-display">Bs. 5.00</strong>
                 </div>
             </div>
         </div>
         <div>
-            <p class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold mb-2">Método de Pago</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold mb-2" data-i18n="store.checkout.paymentMethod">Método de Pago</p>
             <div class="grid grid-cols-2 gap-2" id="payment-methods">
                 <div class="pay-method">
                     <input type="radio" name="payment" id="pay-qr" value="QR" class="sr-only" checked/>
@@ -197,34 +202,34 @@
                 <div class="pay-method">
                     <input type="radio" name="payment" id="pay-transferencia" value="Transferencia" class="sr-only"/>
                     <label for="pay-transferencia" class="block cursor-pointer border border-white/10 rounded-xl p-2.5 text-center text-xs font-semibold transition-all hover:border-white/20 text-on-surface-variant">
-                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">account_balance</span>Transferencia
+                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">account_balance</span><span data-i18n="store.checkout.transfer">Transferencia</span>
                     </label>
                 </div>
                 <div class="pay-method">
                     <input type="radio" name="payment" id="pay-efectivo" value="Efectivo" class="sr-only"/>
                     <label for="pay-efectivo" class="block cursor-pointer border border-white/10 rounded-xl p-2.5 text-center text-xs font-semibold transition-all hover:border-white/20 text-on-surface-variant">
-                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">payments</span>Efectivo
+                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">payments</span><span data-i18n="store.checkout.cash">Efectivo</span>
                     </label>
                 </div>
                 <div class="pay-method">
                     <input type="radio" name="payment" id="pay-acordar" value="Acordar por WhatsApp" class="sr-only"/>
                     <label for="pay-acordar" class="block cursor-pointer border border-white/10 rounded-xl p-2.5 text-center text-xs font-semibold transition-all hover:border-white/20 text-on-surface-variant">
-                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">chat</span>Acordar
+                        <span class="material-symbols-outlined block mx-auto text-xl mb-0.5">chat</span><span data-i18n="store.checkout.arrange">Acordar</span>
                     </label>
                 </div>
             </div>
         </div>
         <div class="space-y-1.5 py-3 border-t border-b border-white/10">
             <div class="flex justify-between text-sm text-on-surface-variant">
-                <span>Subtotal</span>
+                <span data-i18n="store.cart.subtotal">Subtotal</span>
                 <span id="cart-subtotal">Bs. 0.00</span>
             </div>
             <div id="delivery-fee-row" class="hidden flex justify-between text-sm text-on-surface-variant">
-                <span>Envío</span>
+                <span data-i18n="store.cart.deliveryFee">Envío</span>
                 <span id="cart-delivery-fee">Bs. 0.00</span>
             </div>
             <div class="flex justify-between font-bold text-base text-on-surface pt-1">
-                <span>Total</span>
+                <span data-i18n="store.cart.total">Total</span>
                 <span id="cart-total" class="text-primary">Bs. 0.00</span>
             </div>
         </div>
@@ -232,7 +237,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="shrink-0">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
             </svg>
-            Confirmar Pedido por WhatsApp
+            <span data-i18n="store.checkout.submitWhatsapp">Confirmar Pedido por WhatsApp</span>
         </button>
     </div>
 </aside>
@@ -245,6 +250,8 @@
 
 <!-- MAIN SCRIPT -->
 <script type="module">
+    import { t, getCurrentLang, setCurrentLang, applyTranslations } from './js/core/i18n.js';
+
     // ==========================================
     // 1. CREDENCIALES OFICIALES / FALLBACK PUBLICO
     // ==========================================
@@ -287,6 +294,7 @@
     // 3. CICLO DE VIDA (DOM) Y CARGA INICIAL
     // ==========================================
     document.addEventListener('DOMContentLoaded', async () => {
+        applyTranslations(getCurrentLang());
         setupUIListeners();
         await loadProducts();
         subscribeToRealtimeStock();
@@ -376,16 +384,21 @@
         const imgSrc = p.image_url || fallbackImg;
         const catStyle = getCategoryStyle(p.category);
         const isOutOfStock = p.stock === 0;
-        const isCritical = p.stock > 0 && p.stock <= 5;
-        const isFull = p.stock >= 35;
+        const lang = getCurrentLang();
 
+        // Umbrales de stock recalibrados (Fase 2):
+        // 0 = Agotado | 1 = Crítico | 2-5 = Alerta | 6-10 = Recomendado | >10 = Lleno
         let stockBadge = '';
-        if (isOutOfStock) {
-            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-red-500/90 text-white uppercase tracking-wider">Agotado</span>`;
-        } else if (isCritical) {
-            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-amber-500/90 text-black uppercase tracking-wider">⚠ Crítico (${p.stock})</span>`;
-        } else if (isFull) {
-            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-primary/90 text-on-primary uppercase tracking-wider">Stock Lleno</span>`;
+        if (p.stock === 0) {
+            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-red-600/90 text-white uppercase tracking-wider">${t('store.stock.agotado', lang)}</span>`;
+        } else if (p.stock === 1) {
+            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-red-500/90 text-white uppercase tracking-wider">${t('store.stock.critico', lang)} (${p.stock})</span>`;
+        } else if (p.stock >= 2 && p.stock <= 5) {
+            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-amber-400/90 text-black uppercase tracking-wider">${t('store.stock.alerta', lang)} (${p.stock})</span>`;
+        } else if (p.stock >= 6 && p.stock <= 10) {
+            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-secondary/90 text-black uppercase tracking-wider">${t('store.stock.recomendado', lang)}</span>`;
+        } else {
+            stockBadge = `<span class="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-primary/90 text-on-primary uppercase tracking-wider">${t('store.stock.lleno', lang)}</span>`;
         }
 
         const cartItem = state.cart.find(c => c.id === p.id);
@@ -416,15 +429,16 @@
     }
 
     function addButtonHTML(p, isOutOfStock) {
+        const lang = getCurrentLang();
         if (isOutOfStock) {
             return `<button onclick="openReserveModal('${p.id}')" class="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-600 shadow-amber-500/30">
                 <span class="material-symbols-outlined text-lg">notifications_active</span>
-                Reservar / Notificarme
+                ${t('store.product.reserveNotify', lang)}
             </button>`;
         }
         return `<button onclick="addToCart('${p.id}')" class="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
-            Agregar al carrito
+            ${t('store.product.addToCart', lang)}
         </button>`;
     }
 
@@ -568,10 +582,11 @@
     // ==========================================
     function dispatchOrderToWhatsApp() {
         if (state.cart.length === 0) {
-            showToast('error', 'El carrito está vacío.', 'error');
+            showToast('error', t('store.cart.empty'), 'error');
             return;
         }
 
+        const lang = getCurrentLang();
         const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'No especificado';
         const deliveryOption = state.deliveryType;
         const zone = document.getElementById('delivery-zone')?.value?.trim() || '';
@@ -585,25 +600,25 @@
         const itemsText = state.cart.map(i => `  • ${i.name} (x${i.qty}) — ${CURRENCY} ${(Math.round(i.price * i.qty * 100) / 100).toFixed(2)}`).join('\n');
         
         const deliveryText = deliveryOption === 'home'
-            ? `🚚 Envío a domicilio${zone ? ` → *${zone}*` : ''} (+${CURRENCY} ${fee.toFixed(2)})`
-            : `🏪 Retiro en tienda física`;
+            ? `🚚 ${t('store.whatsapp.deliveryHome', lang)}${zone ? ` → *${zone}*` : ''} (+${CURRENCY} ${fee.toFixed(2)})`
+            : `🏪 ${t('store.whatsapp.deliveryPickup', lang)}`;
 
         const message = 
-`🌿 *Nuevo Pedido — Prem Vida* 🌿
+`🌿 *${t('store.whatsapp.newOrderTitle', lang)}* 🌿
 
-📦 *Código:* #${orderCode}
-💳 *Pago:* ${paymentMethod}
+📦 *${t('store.whatsapp.orderCode', lang)}:* #${orderCode}
+💳 *${t('store.whatsapp.paymentMethod', lang)}:* ${paymentMethod}
 ${deliveryText}
 
-🛒 *Productos:*
+🛒 *${t('store.whatsapp.productsDetail', lang)}:*
 ${itemsText}
 
 ━━━━━━━━━━━━━━━
-🧾 Subtotal: ${CURRENCY} ${subtotal.toFixed(2)}${fee > 0 ? `\n🚚 Envío:    ${CURRENCY} ${fee.toFixed(2)}` : ''}
-💰 *TOTAL:   ${CURRENCY} ${total.toFixed(2)}*
+🧾 ${t('store.cart.subtotal', lang)}: ${CURRENCY} ${subtotal.toFixed(2)}${fee > 0 ? `\n🚚 ${t('store.cart.deliveryFee', lang)}: ${CURRENCY} ${fee.toFixed(2)}` : ''}
+💰 *${t('store.whatsapp.total', lang)}: ${CURRENCY} ${total.toFixed(2)}*
 ━━━━━━━━━━━━━━━
 
-Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
+${t('store.whatsapp.thanks', lang)} 🌱`;
 
         const waUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank', 'noopener,noreferrer');
@@ -630,7 +645,7 @@ Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
         const container = document.getElementById('category-filters');
         if (!container) return;
 
-        container.innerHTML = `<button data-cat="all" class="cat-filter-btn active category-pill bg-primary/20 text-primary border border-primary/30">Todos</button>`;
+        container.innerHTML = `<button data-cat="all" class="cat-filter-btn active category-pill bg-primary/20 text-primary border border-primary/30">${t('store.filters.all', getCurrentLang())}</button>`;
         state.categories.forEach(cat => {
             const count = state.products.filter(p => p.category === cat).length;
             const btn = document.createElement('button');
@@ -684,7 +699,7 @@ Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
         const originalHtml = confirmBtn?.innerHTML;
         if (confirmBtn) {
             confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span>Generando ticket...';
+            confirmBtn.innerHTML = `<span class="material-symbols-outlined animate-spin">progress_activity</span>${t('store.checkout.generatingTicket', getCurrentLang())}`;
         }
 
         try {
@@ -713,26 +728,30 @@ Muchas gracias por tu pedido. ¡Pronto nos comunicamos! 🌱`;
                 });
             }
 
+            const lang = getCurrentLang();
             const itemsText = state.cart
                 .map((item) => `- ${item.name} (x${item.qty}) - ${CURRENCY} ${(Math.round(item.price * item.qty * 100) / 100).toFixed(2)}`)
                 .join('\n');
             const deliveryText = deliveryOption === 'home'
-                ? `Delivery a domicilio${zone ? ` - ${zone}` : ''} (+${CURRENCY} ${fee.toFixed(2)})`
-                : 'Recojo en tienda';
+                ? `${t('store.whatsapp.deliveryHome', lang)}${zone ? ` - ${zone}` : ''} (+${CURRENCY} ${fee.toFixed(2)})`
+                : t('store.whatsapp.deliveryPickup', lang);
             const message =
-`Hola! Este es el ticket de mi orden por favor: ${orderCode}
+`${t('store.whatsapp.greeting', lang)}: ${orderCode}
 
-Codigo: ${orderCode}
-Pago: ${paymentMethod}
-Entrega: ${deliveryText}
+${t('store.whatsapp.orderCode', lang)}: ${orderCode}
+${t('store.whatsapp.paymentMethod', lang)}: ${paymentMethod}
+${t('store.whatsapp.deliveryType', lang)}: ${deliveryText}
 
-Productos:
+${t('store.whatsapp.productsDetail', lang)}:
 ${itemsText}
 
-Subtotal: ${CURRENCY} ${subtotal.toFixed(2)}${fee > 0 ? `\nEnvio: ${CURRENCY} ${fee.toFixed(2)}` : ''}
-TOTAL: ${CURRENCY} ${total.toFixed(2)}`;
+${t('store.cart.subtotal', lang)}: ${CURRENCY} ${subtotal.toFixed(2)}${fee > 0 ? `\n${t('store.cart.deliveryFee', lang)}: ${CURRENCY} ${fee.toFixed(2)}` : ''}
+${t('store.whatsapp.total', lang)}: ${CURRENCY} ${total.toFixed(2)}`;
 
-            showToast('check_circle', `Ticket ${orderCode} registrado. Abriendo WhatsApp...`, 'success');
+            const successMsg = lang === 'en'
+                ? `Ticket ${orderCode} registered. Opening WhatsApp...`
+                : `Ticket ${orderCode} registrado. Abriendo WhatsApp...`;
+            showToast('check_circle', successMsg, 'success');
             window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
         } catch (error) {
             console.error('Error creando ticket:', error);
@@ -858,6 +877,40 @@ TOTAL: ${CURRENCY} ${total.toFixed(2)}`;
         });
         document.querySelectorAll('input[name="payment"]').forEach(r => { r.addEventListener('change', (e) => { state.paymentMethod = e.target.value; }); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.isCartOpen) closeCart(); });
+
+        document.querySelectorAll('#lang-toggle button[data-lang]').forEach(btn => {
+            btn.addEventListener('click', () => switchLanguage(btn.dataset.lang));
+        });
+        updateLangToggleUI();
+    }
+
+    // ==========================================
+    // 8b. IDIOMA (ES/EN) - TIENDA PÚBLICA
+    // ==========================================
+    function switchLanguage(lang) {
+        const safeLang = setCurrentLang(lang);
+        applyTranslations(safeLang);
+        updateLangToggleUI();
+        // Vuelve a pintar contenido generado dinámicamente (tarjetas de producto,
+        // filtros de categoría, resumen del carrito) para reflejar el nuevo idioma.
+        renderProducts();
+        buildCategoryFilters();
+        calculateAndRenderTotals();
+        const emptyMsg = document.querySelector('#cart-empty p.font-medium');
+        if (emptyMsg) emptyMsg.textContent = t('store.cart.empty', safeLang);
+    }
+
+    function updateLangToggleUI() {
+        const lang = getCurrentLang();
+        const esBtn = document.getElementById('lang-btn-es');
+        const enBtn = document.getElementById('lang-btn-en');
+        if (!esBtn || !enBtn) return;
+        esBtn.classList.toggle('bg-primary', lang === 'es');
+        esBtn.classList.toggle('text-black', lang === 'es');
+        esBtn.classList.toggle('text-on-surface-variant', lang !== 'es');
+        enBtn.classList.toggle('bg-primary', lang === 'en');
+        enBtn.classList.toggle('text-black', lang === 'en');
+        enBtn.classList.toggle('text-on-surface-variant', lang !== 'en');
     }
 
     function getCategoryStyle(cat) {
@@ -895,34 +948,35 @@ TOTAL: ${CURRENCY} ${total.toFixed(2)}`;
                     <div class="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
                         <h3 class="font-bold text-lg text-on-surface flex items-center gap-2">
                             <span class="material-symbols-outlined text-amber-400">notifications_active</span>
-                            Reservar Producto
+                            <span data-i18n="store.reserveModal.productTitle">Reservar Producto</span>
                         </h3>
                         <button onclick="closeReserveModal()" class="text-on-surface-variant hover:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-                    <p class="text-sm text-on-surface-variant mb-4">El producto <strong id="reserve-product-name" class="text-on-surface"></strong> está agotado. Déjanos tus datos para notificarte cuando vuelva a estar en stock o registrar tu interés.</p>
+                    <p class="text-sm text-on-surface-variant mb-4"><span data-i18n="store.reserveModal.descPrefix">El producto</span> <strong id="reserve-product-name" class="text-on-surface"></strong> <span data-i18n="store.reserveModal.descSuffix">está agotado. Déjanos tus datos para notificarte cuando vuelva a estar en stock o registrar tu interés.</span></p>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Tu Nombre</label>
-                            <input type="text" id="reserve-name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" placeholder="Ej. Ana Pérez">
+                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1" data-i18n="store.reserveModal.nameLabel">Tu Nombre</label>
+                            <input type="text" id="reserve-name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" data-i18n-placeholder="store.reserveModal.namePlaceholder" placeholder="Ej. Ana Pérez">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">WhatsApp / Contacto</label>
-                            <input type="text" id="reserve-contact" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" placeholder="Tu número para avisarte">
+                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1" data-i18n="store.reserveModal.contactLabel">WhatsApp / Contacto</label>
+                            <input type="text" id="reserve-contact" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" data-i18n-placeholder="store.reserveModal.contactPlaceholder" placeholder="Tu número para avisarte">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Comentarios / Sugerencias</label>
-                            <textarea id="reserve-comments" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" rows="3" placeholder="Ej. ¿Podrían traer en otros sabores?"></textarea>
+                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1" data-i18n="store.reserveModal.commentsLabel">Comentarios / Sugerencias</label>
+                            <textarea id="reserve-comments" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface" rows="3" data-i18n-placeholder="store.reserveModal.commentsPlaceholder" placeholder="Ej. ¿Podrían traer en otros sabores?"></textarea>
                         </div>
                         <input type="hidden" id="reserve-product-id">
                         <button onclick="submitReservation()" class="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-400 to-amber-600 text-black shadow-lg shadow-amber-500/30 hover:opacity-90 transition-all">
-                            Enviar Solicitud
+                            <span data-i18n="store.reserveModal.submit">Enviar Solicitud</span>
                         </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(reserveModal);
+            applyTranslations(getCurrentLang());
         }
         
         document.getElementById('reserve-product-name').textContent = product.name;
@@ -944,15 +998,16 @@ TOTAL: ${CURRENCY} ${total.toFixed(2)}`;
         const contact = document.getElementById('reserve-contact').value.trim();
         const comments = document.getElementById('reserve-comments').value.trim();
         const productId = document.getElementById('reserve-product-id').value;
+        const lang = getCurrentLang();
         
         if(!name || !contact) {
-            showToast('warning', 'Por favor ingresa tu nombre y número de contacto.', 'warning');
+            showToast('warning', t('store.reserveModal.validationError', lang), 'warning');
             return;
         }
         
         console.log("Reserva enviada:", { name, contact, comments, productId });
         
-        showToast('check_circle', '¡Solicitud enviada! Te avisaremos cuando haya stock.', 'success');
+        showToast('check_circle', t('store.reserveModal.success', lang), 'success');
         closeReserveModal();
     };
 

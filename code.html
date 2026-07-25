@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/core/shared.js" defer></script>
+    <script type="module" src="js/core/shared.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -552,6 +552,7 @@
         processXeroInventoryCSV,
         exportToFormat
     } from './js/core/logic.js';
+    import { t, getCurrentLang } from './js/core/i18n.js';
 
     // Estado global de la aplicación
     const state = {
@@ -1005,25 +1006,29 @@
                 catBadgeClass = 'bg-amber-500/10 text-amber-400';
             }
 
-            // Barra y etiqueta de estado de stock
+            // Barra y etiqueta de estado de stock (umbrales recalibrados)
             const maxStockReference = 200;
             const stockPercent = Math.min(100, (p.stock / maxStockReference) * 100);
+            const lang = getCurrentLang();
 
-            let stockColorClass = 'bg-primary';
-            let stockLabel = `${p.stock} unidades`;
+            let stockColorClass;
+            let stockLabel;
 
             if (p.stock === 0) {
+                stockColorClass = 'bg-red-600';
+                stockLabel = t('admin.stock.agotado', lang);
+            } else if (p.stock === 1) {
                 stockColorClass = 'bg-red-500';
-                stockLabel = 'Sin Stock (Agotado)';
-            } else if (p.stock <= 5) {
-                stockColorClass = 'bg-red-400';
-                stockLabel = `⚠ Crítico (${p.stock})`;
-            } else if (p.stock >= 35) {
-                stockColorClass = 'bg-primary';
-                stockLabel = `Stock Lleno (${p.stock})`;
-            } else {
+                stockLabel = `${t('admin.stock.critico', lang)} (${p.stock})`;
+            } else if (p.stock >= 2 && p.stock <= 5) {
+                stockColorClass = 'bg-amber-400';
+                stockLabel = `${t('admin.stock.alerta', lang)} (${p.stock})`;
+            } else if (p.stock >= 6 && p.stock <= 10) {
                 stockColorClass = 'bg-secondary';
-                stockLabel = `Stock Normal (${p.stock})`;
+                stockLabel = `${t('admin.stock.recomendado', lang)} (${p.stock})`;
+            } else {
+                stockColorClass = 'bg-primary';
+                stockLabel = `${t('admin.stock.lleno', lang)} (${p.stock})`;
             }
 
             return `
@@ -1048,7 +1053,7 @@
                             <div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <div class="${stockColorClass} h-full" style="width: ${stockPercent}%"></div>
                             </div>
-                            <span class="text-xs ${p.stock === 0 || p.stock < 5 ? 'text-red-400' : p.stock < 15 ? 'text-secondary' : 'text-on-surface-variant'}">${stockLabel}</span>
+                            <span class="text-xs ${p.stock <= 1 ? 'text-red-400' : p.stock <= 5 ? 'text-amber-400' : p.stock <= 10 ? 'text-secondary' : 'text-on-surface-variant'}">${stockLabel}</span>
                         </div>
                     </td>
                     <td class="px-6 py-4">

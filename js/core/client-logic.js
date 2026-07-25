@@ -3,6 +3,8 @@
  * Written in modern modular JavaScript (ES Modules).
  */
 
+import { t } from './i18n.js';
+
 /**
  * Calcula el total de la compra en Bs.
  * 
@@ -42,32 +44,45 @@ export function getGoogleMapsLink() {
 
 /**
  * Genera un enlace de WhatsApp codificado con el resumen del pedido para enviar a WhatsApp Business.
- * 
+ * El mensaje se redacta completamente en el idioma activo ('es' o 'en').
+ *
+ * NOTA DE ARQUITECTURA: `tienda.html` (Fase C) implementa hoy su propio flujo de
+ * despacho a WhatsApp de forma inline (`dispatchOrderWithTicket()`), ya traducido
+ * directamente ahí. Esta función se mantiene y actualiza para cualquier otro
+ * punto de integración que consuma `client-logic.js` directamente.
+ *
  * @param {Array<Object>} cartItems - Ítems del carrito { name, price, quantity }.
  * @param {string} orderCode - Código único del pedido.
  * @param {string} deliveryType - Tipo de entrega ('envio' o 'recoger').
  * @param {string} paymentMethod - Método de pago ('Efectivo', 'QR', 'Pago Móvil', etc.).
  * @param {number} deliveryFee - Costo de envío aplicado.
  * @param {number} total - Total de la orden en Bs.
+ * @param {Object} [customerData] - Datos opcionales del cliente { name, phone }.
+ * @param {'es'|'en'} [lang='es'] - Idioma activo para redactar el mensaje.
  * @param {string} [phoneNumber='584120000000'] - Número de teléfono de WhatsApp de la tienda.
  * @returns {string} Enlace completo de WhatsApp listo para abrir.
  */
-export function generateWhatsAppLink(cartItems, orderCode, deliveryType, paymentMethod, deliveryFee, total, phoneNumber = '584120000000') {
+export function generateWhatsAppLink(cartItems, orderCode, deliveryType, paymentMethod, deliveryFee, total, customerData = null, lang = 'es', phoneNumber = '584120000000') {
   const itemsText = cartItems
     .map(item => `- ${item.name} (x${item.quantity}) - Bs. ${(item.price * item.quantity).toFixed(2)}`)
     .join('\n');
 
-  const deliveryText = deliveryType === 'envio' 
-    ? `Envío a domicilio (Costo: Bs. ${parseFloat(deliveryFee || 0).toFixed(2)})` 
-    : 'Recoger en tienda física';
+  const deliveryText = deliveryType === 'envio'
+    ? `${t('store.whatsapp.deliveryHome', lang)} (${t('store.whatsapp.deliveryCost', lang)}: Bs. ${parseFloat(deliveryFee || 0).toFixed(2)})`
+    : t('store.whatsapp.deliveryPickup', lang);
 
-  const message = `🌱 *Nuevo Pedido - Prem Vida*\n\n` +
-    `*Código de Pedido:* #${orderCode}\n` +
-    `*Método de Pago:* ${paymentMethod}\n` +
-    `*Tipo de Entrega:* ${deliveryText}\n\n` +
-    `*Detalle de Productos:*\n${itemsText}\n\n` +
-    `*TOTAL DEFINITIVO:* Bs. ${parseFloat(total).toFixed(2)}\n\n` +
-    `Muchas gracias por su preferencia.`;
+  const customerLine = customerData?.name
+    ? `\n*${lang === 'en' ? 'Customer' : 'Cliente'}:* ${customerData.name}${customerData.phone ? ` (${customerData.phone})` : ''}\n`
+    : '';
+
+  const message = `🌱 *${t('store.whatsapp.newOrderTitle', lang)}*\n\n` +
+    `*${t('store.whatsapp.orderCode', lang)}:* #${orderCode}\n` +
+    `*${t('store.whatsapp.paymentMethod', lang)}:* ${paymentMethod}\n` +
+    `*${t('store.whatsapp.deliveryType', lang)}:* ${deliveryText}\n` +
+    customerLine +
+    `\n*${t('store.whatsapp.productsDetail', lang)}:*\n${itemsText}\n\n` +
+    `*${t('store.whatsapp.total', lang)}:* Bs. ${parseFloat(total).toFixed(2)}\n\n` +
+    `${t('store.whatsapp.thanks', lang)}`;
 
   return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 }

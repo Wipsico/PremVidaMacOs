@@ -3,6 +3,8 @@
  * Centraliza Supabase, Auth/RLS, health check, UI común y alertas.
  */
 
+import { applyTranslations, getCurrentLang } from './i18n.js';
+
 const OFFICIAL_SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
 const OFFICIAL_SUPABASE_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
 const PUBLIC_PAGES = ['login.html', 'tienda.html', 'index.html'];
@@ -181,6 +183,7 @@ function setupSharedUI() {
     setupActiveSidebarLink();
     setupToastHelper();
     setupNotificationBell();
+    applyTranslations(getCurrentLang());
 }
 
 function setupAvatarDropdown() {

@@ -33,7 +33,7 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
     </style>
-    <script src="js/core/shared.js" defer></script>
+    <script type="module" src="js/core/shared.js"></script>
 </head>
 <body class="flex min-h-screen bg-[#09090b] text-zinc-100">
     <aside class="w-[280px] h-screen sticky left-0 top-0 bg-zinc-950/70 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.45)] flex flex-col py-8 px-6 z-50">
@@ -83,10 +83,10 @@
     <main class="flex-1 min-h-screen">
         <header class="sticky top-0 z-40 h-20 px-8 flex justify-between items-center border-b border-white/10 bg-zinc-950/70 backdrop-blur-[40px] shadow-lg">
             <div class="flex items-center gap-8">
-                <h2 class="font-bold text-lg text-zinc-100">Configuración general</h2>
+                <h2 class="font-bold text-lg text-zinc-100" data-i18n="admin.settings.title">Configuración general</h2>
                 <div class="h-6 w-px bg-white/10"></div>
                 <div class="flex items-center gap-3">
-                    <span class="text-[11px] uppercase tracking-[0.24em] text-zinc-400">Modo mantenimiento</span>
+                    <span class="text-[11px] uppercase tracking-[0.24em] text-zinc-400" data-i18n="admin.settings.maintenanceMode">Modo mantenimiento</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input id="maintenance-toggle-header" class="sr-only peer" type="checkbox" />
                         <div class="w-11 h-6 rounded-full bg-white/10 transition-colors peer-checked:bg-emerald-500/30">
@@ -117,49 +117,49 @@
                         <div>
                             <h3 class="font-bold text-xl flex items-center gap-2 text-zinc-100">
                                 <span class="material-symbols-outlined text-emerald-400">tune</span>
-                                Parámetros del sistema
+                                <span data-i18n="admin.settings.paramsTitle">Parámetros del sistema</span>
                             </h3>
-                            <p class="text-sm text-zinc-400 mt-2 leading-relaxed">
+                            <p class="text-sm text-zinc-400 mt-2 leading-relaxed" data-i18n="admin.settings.paramsDescription">
                                 Ajusta los valores globales de la suite para stock, bonos, entregas y modo de mantenimiento en Bolivia.
                             </p>
                         </div>
-                        <button id="btn-save-settings" class="px-4 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-sm shadow-lg shadow-emerald-500/15 hover:brightness-110 transition-all">
+                        <button id="btn-save-settings" class="px-4 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-sm shadow-lg shadow-emerald-500/15 hover:brightness-110 transition-all" data-i18n="admin.settings.save">
                             Guardar cambios
                         </button>
                     </div>
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <label class="space-y-2 md:col-span-2">
-                            <span id="label-preferred-language" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Idioma de interfaz</span>
+                            <span id="label-preferred-language" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.languageLabel">Idioma de interfaz</span>
                             <select id="preferred-language" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none">
                                 <option value="es">Español</option>
                                 <option value="en">English</option>
                             </select>
                         </label>
                         <label class="space-y-2">
-                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Umbral de stock crítico</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.stockAlertThreshold">Umbral de stock crítico</span>
                             <input id="stock-alert-threshold" type="number" min="0" step="1" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
                         </label>
                         <label class="space-y-2">
-                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Multiplicador de bonos</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.bonusMultiplier">Multiplicador de bonos</span>
                             <input id="bonus-multiplier" type="number" min="1" max="3" step="0.01" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
                         </label>
                         <label class="space-y-2">
-                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Tarifa de entrega (Bs.)</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.deliveryFee">Tarifa de entrega (Bs.)</span>
                             <input id="delivery-fee-bs" type="number" min="0" step="0.01" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
                         </label>
                         <label class="space-y-2">
-                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Nombre de la tienda</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.storeName">Nombre de la tienda</span>
                             <input id="store-name" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" />
                         </label>
                         <label class="space-y-2 md:col-span-2">
-                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">Número de WhatsApp</span>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400" data-i18n="admin.settings.whatsappNumber">Número de WhatsApp</span>
                             <input id="whatsapp-number" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none" placeholder="591xxxxxxxx" />
                         </label>
                         <div class="md:col-span-2 glass-muted rounded-2xl p-4 flex items-center justify-between">
                             <div>
-                                <p class="font-semibold text-zinc-100">Modo mantenimiento</p>
-                                <p class="text-sm text-zinc-400">Activa bloqueos operativos globales para la suite.</p>
+                                <p class="font-semibold text-zinc-100" data-i18n="admin.settings.maintenanceMode">Modo mantenimiento</p>
+                                <p class="text-sm text-zinc-400" data-i18n="admin.settings.maintenanceDescription">Activa bloqueos operativos globales para la suite.</p>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input id="maintenance-mode" class="sr-only peer" type="checkbox" />
@@ -176,11 +176,11 @@
                         <div>
                             <h3 class="font-bold text-lg flex items-center gap-2 text-zinc-100">
                                 <span class="material-symbols-outlined text-sky-400">terminal</span>
-                                Consola de auditoría
+                                <span data-i18n="admin.settings.auditTitle">Consola de auditoría</span>
                             </h3>
-                            <p class="text-sm text-zinc-400 mt-1">Seguimiento de operaciones del sistema.</p>
+                            <p class="text-sm text-zinc-400 mt-1" data-i18n="admin.settings.auditDescription">Seguimiento de operaciones del sistema.</p>
                         </div>
-                        <button id="btn-refresh-logs" class="rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors">
+                        <button id="btn-refresh-logs" class="rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors" data-i18n="admin.settings.auditRefresh">
                             Refrescar
                         </button>
                     </div>
@@ -197,6 +197,7 @@
 
     <script type="module">
         import { fetchSystemSettings, updateSystemSettings, fetchAuditLogs } from './js/core/settings-logic.js';
+        import { t, getCurrentLang, setCurrentLang, applyTranslations } from './js/core/i18n.js';
 
         const supabase = window.supabaseClient;
         const fields = {
@@ -213,36 +214,16 @@
             auditList: document.getElementById('audit-log-list'),
         };
 
-        const I18N = {
-            es: {
-                languageLabel: 'Idioma de interfaz',
-                settingsTitle: 'Configuración general',
-                saveSuccess: 'Parámetros actualizados correctamente.',
-                auditRefresh: 'Auditoría actualizada.',
-            },
-            en: {
-                languageLabel: 'Interface language',
-                settingsTitle: 'General settings',
-                saveSuccess: 'Settings updated successfully.',
-                auditRefresh: 'Audit refreshed.',
-            },
-        };
-
-        function getCurrentLanguage() {
-            const saved = localStorage.getItem('premvida_lang') || fields.preferredLanguage?.value || 'es';
-            return ['es', 'en'].includes(saved) ? saved : 'es';
-        }
-
+        /**
+         * Aplica el idioma indicado: lo persiste en localStorage (premvida_lang),
+         * sincroniza el <select>, y ejecuta applyTranslations() de inmediato para
+         * que toda la interfaz cambie sin requerir recarga del navegador (Fase 4).
+         */
         function applyLanguage(lang) {
-            const safeLang = ['es', 'en'].includes(lang) ? lang : 'es';
-            localStorage.setItem('premvida_lang', safeLang);
+            const safeLang = setCurrentLang(lang);
             if (fields.preferredLanguage) fields.preferredLanguage.value = safeLang;
-            const dict = I18N[safeLang];
-            const label = document.getElementById('label-preferred-language');
-            if (label) label.textContent = dict.languageLabel;
-            const title = document.querySelector('header h2');
-            if (title) title.textContent = dict.settingsTitle;
-            document.documentElement.lang = safeLang;
+            applyTranslations(safeLang);
+            return safeLang;
         }
 
         function showToast(message, type = 'success') {
@@ -271,7 +252,7 @@
             fields.deliveryFeeBs.value = settings.delivery_fee_bs ?? 15;
             fields.storeName.value = settings.store_name || 'Prem Vida';
             fields.whatsappNumber.value = settings.whatsapp_number || '';
-            applyLanguage(settings.preferred_language || getCurrentLanguage());
+            applyLanguage(settings.preferred_language || getCurrentLang());
             const maintenance = Boolean(settings.maintenance_mode);
             fields.maintenanceMode.checked = maintenance;
             fields.maintenanceHeader.checked = maintenance;
@@ -293,7 +274,7 @@
             if (!logs || logs.length === 0) {
                 fields.auditList.innerHTML = `
                     <div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-zinc-400">
-                        No hay eventos de auditoría disponibles por el momento.
+                        ${t('admin.settings.auditEmpty', getCurrentLang())}
                     </div>`;
                 return;
             }
@@ -347,7 +328,7 @@
 
                     const settings = await updateSystemSettings(supabase, payload);
                     bindSettings(settings);
-                    showToast(I18N[getCurrentLanguage()].saveSuccess, 'success');
+                    showToast(t('admin.settings.saveSuccess', getCurrentLang()), 'success');
                     await refreshAuditLogs();
                 } catch (error) {
                     console.error(error);
@@ -357,7 +338,7 @@
 
             fields.refreshButton.addEventListener('click', async () => {
                 await refreshAuditLogs();
-                showToast(I18N[getCurrentLanguage()].auditRefresh, 'info');
+                showToast(t('admin.settings.auditRefreshed', getCurrentLang()), 'info');
             });
 
             fields.preferredLanguage.addEventListener('change', () => {
