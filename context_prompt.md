@@ -423,3 +423,37 @@ Archivos finales entregados: `code.html`, `settings.html`, `tienda.html`, `js/co
 - ✅ Fase 3: Integración en tienda pública (`tienda.html` + `client-logic.js`)
 - ✅ Fase 4: Sincronización en Ajustes Admin (`settings.html`)
 - 🔲 Pendiente fuera del SDD original (ver recomendaciones): tagging `data-i18n` de `code.html`/`orders.html` (tablas, botones, KPIs), unificación de `client-logic.js` con la lógica real de `tienda.html`, campos de nombre/teléfono del cliente, alineación del umbral de la campanita de notificaciones en `shared.js`.
+
+---
+
+## ACTUALIZACION 2026-07-25 18:10 - Toggle "Maintenance Mode" conectado a tienda.html
+
+### Pedido del usuario
+Conectar el switch `MAINTENANCE MODE` del panel admin (`settings.html`) con `tienda.html`: al activarse, mostrar un overlay bilingüe glassmorphism que bloquee el catálogo y el carrito; al desactivarse, ocultarlo automáticamente. Todo vía Supabase Realtime sobre la tabla `store_settings` (singleton, RLS: SELECT público / UPDATE solo autenticados, Realtime ya habilitado).
+
+### Hallazgo critico encontrado (bug pre-existente, no introducido por esta sesion)
+Al revisar `js/core/settings-logic.js` para conectar esta funcionalidad, se detectó que **la sincronización con Supabase nunca apuntaba a la tabla real `store_settings`**: `SUPABASE_SETTING_TABLES` sólo listaba `['system_settings', 'app_settings', 'settings']`, y el `upsert` se hacía con un `id: 'global'` fijo (formato inválido para una tabla con `id` de tipo UUID real). Es decir, aunque `settings.html` mostraba éxito al guardar (porque `persistLocalSettings` cae a `localStorage` como respaldo), **el cambio de `maintenance_mode` probablemente nunca llegaba a la base de datos real**. Se corrigió:
+- `SUPABASE_SETTING_TABLES` ahora incluye `store_settings` como primera opción.
+- Nueva lógica en `trySupabaseSettingsSync`: primero busca el `id` real de la única fila de `store_settings` (`select('id').limit(1).maybeSingle()`), y actualiza por ese `id`; si la tabla está vacía, inserta la primera fila. Solo si `store_settings` no responde, cae al comportamiento legado (`upsert` con `id:'global'` sobre las tablas alternativas), por compatibilidad hacia atrás.
+
+### Cambios realizados
+1. **`js/core/settings-logic.js`**:
+   - Corrección descrita arriba (tabla real `store_settings` priorizada y actualizada por `id` real).
+   - Nueva función `fetchMaintenanceMode(supabase)`: `select('maintenance_mode').limit(1).single()` sobre `store_settings`, con fallback seguro a `false` ante cualquier error.
+   - Nueva función `subscribeMaintenanceMode(supabase, onChange)`: crea el canal `store-settings-maintenance` con `.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'store_settings' }, ...)` y devuelve el canal (para poder desuscribirse si se necesitara a futuro).
+2. **`js/core/i18n.js`**: nuevo namespace `store.maintenance` (ES/EN) con `title` y `message`, con el texto exacto pedido por el usuario (incluye el emoji 🛠️).
+3. **`tienda.html`**:
+   - Overlay `#maintenance-overlay` insertado justo después del `<header>`: `fixed inset-0 z-[300]`, fondo `bg-black/75 backdrop-blur-xl`, tarjeta glass centrada con ícono `construction`, título y mensaje etiquetados `data-i18n="store.maintenance.title"` / `data-i18n="store.maintenance.message"`. Oculto por defecto (`hidden`).
+   - Import de `fetchMaintenanceMode` y `subscribeMaintenanceMode` desde `./js/core/settings-logic.js`.
+   - Nueva bandera `state.isMaintenanceMode`.
+   - Nueva función `toggleMaintenanceOverlay(isMaintenance)`: muestra/oculta el overlay y re-aplica `applyTranslations()` para asegurar que el mensaje esté en el idioma activo al mostrarse.
+   - En `DOMContentLoaded`: lectura inicial con `fetchMaintenanceMode(supabaseClient)` seguida de `subscribeMaintenanceMode(supabaseClient, toggleMaintenanceOverlay)` — así la tienda reacciona tanto al cargar como en tiempo real sin recargar el navegador.
+   - `window.addToCart` y `window.openReserveModal` ahora verifican `state.isMaintenanceMode` al inicio y, si está activo, muestran un toast de aviso y no ejecutan la acción (bloqueo real de compra, no solo visual).
+4. Se extrajo y validó con `node --check` el bloque `<script type="module">` completo de `tienda.html`, además de `i18n.js` y `settings-logic.js` — todos OK.
+
+### Flujo end-to-end verificado (lectura de código, no runtime)
+`settings.html` (checkbox `maintenance_mode`) → `updateSystemSettings()` en `settings-logic.js` → `trySupabaseSettingsSync()` actualiza `store_settings.maintenance_mode` por `id` real → Supabase Realtime emite `UPDATE` → `tienda.html` recibe el evento vía `subscribeMaintenanceMode()` → `toggleMaintenanceOverlay()` muestra/oculta el overlay y bloquea/desbloquea `addToCart`/`openReserveModal`.
+
+### Pendiente / recomendación para el usuario
+- **No pude ejecutar esto en un entorno real de Supabase** (sin acceso de red desde este sandbox): la validación fue de sintaxis y de lectura de código, no un test end-to-end contra la base de datos real. Se recomienda una prueba manual: activar el switch en `settings.html`, confirmar en el dashboard de Supabase que `store_settings.maintenance_mode` cambió a `true`, y verificar que `tienda.html` (abierta en otra pestaña, sin recargar) muestre el overlay en segundos.
+- Dado el bug encontrado en `trySupabaseSettingsSync`, vale la pena revisar si **otros parámetros** guardados desde `settings.html` (umbral de stock, tarifa de envío, etc.) tampoco estaban llegando a producción antes de este fix — esta sesión solo confirma y corrige la ruta hacia `store_settings`, no auditó registros históricos ya perdidos.

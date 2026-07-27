@@ -22,7 +22,10 @@ const DEFAULT_SETTINGS = {
     last_updated: null,
 };
 
-const SUPABASE_SETTING_TABLES = ['system_settings', 'app_settings', 'settings'];
+const SUPABASE_SETTING_TABLES = ['store_settings', 'system_settings', 'app_settings', 'settings'];
+// Tabla real de producción confirmada: singleton, RLS (SELECT público / UPDATE solo
+// autenticados) y con Realtime ya habilitado en supabase_realtime.
+const PRIMARY_SETTINGS_TABLE = 'store_settings';
 
 function getLocalSettings() {
     try {
@@ -47,7 +50,39 @@ function persistLocalSettings(settings) {
 async function trySupabaseSettingsSync(supabase, settings) {
     if (!supabase) return settings;
 
-    for (const table of SUPABASE_SETTING_TABLES) {
+    // Tabla real de producción (store_settings): fila singleton. Se busca su id
+    // real primero (no se asume 'global' ni un UUID fijo) y se actualiza por id;
+    // si aún no existe ninguna fila, se inserta la primera.
+    try {
+        const { data: existing, error: selectError } = await supabase
+            .from(PRIMARY_SETTINGS_TABLE)
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+
+        if (!selectError) {
+            if (existing?.id) {
+                const { error: updateError } = await supabase
+                    .from(PRIMARY_SETTINGS_TABLE)
+                    .update(settings)
+                    .eq('id', existing.id);
+                if (!updateError) return settings;
+                console.warn(`[settings-logic] No se pudo actualizar ${PRIMARY_SETTINGS_TABLE}:`, updateError);
+            } else {
+                const { error: insertError } = await supabase
+                    .from(PRIMARY_SETTINGS_TABLE)
+                    .insert(settings);
+                if (!insertError) return settings;
+                console.warn(`[settings-logic] No se pudo crear la fila inicial de ${PRIMARY_SETTINGS_TABLE}:`, insertError);
+            }
+        }
+    } catch (error) {
+        console.warn(`[settings-logic] ${PRIMARY_SETTINGS_TABLE} no está disponible para sincronización:`, error);
+    }
+
+    // Fallback legado: intenta tablas alternativas con upsert genérico por id='global'
+    // (compatibilidad con instalaciones antiguas que no usan store_settings).
+    for (const table of SUPABASE_SETTING_TABLES.filter((t) => t !== PRIMARY_SETTINGS_TABLE)) {
         try {
             const payload = {
                 id: 'global',
@@ -119,6 +154,56 @@ export async function updateSystemSettings(supabase, settingsData) {
     await trySupabaseSettingsSync(supabase, toSave);
     await updateCurrentProfileLanguage(supabase, preferredLanguage);
     return toSave;
+}
+
+/**
+ * Consulta el estado actual de maintenance_mode en la tabla store_settings.
+ * Pensada para tienda.html (página pública): es una consulta liviana de una sola
+ * columna, no requiere el resto de parámetros del sistema.
+ *
+ * @param {Object} supabase - Instancia del cliente de Supabase.
+ * @returns {Promise<boolean>} true si la tienda está en mantenimiento.
+ */
+export async function fetchMaintenanceMode(supabase) {
+    if (!supabase) return false;
+    try {
+        const { data, error } = await supabase
+            .from(PRIMARY_SETTINGS_TABLE)
+            .select('maintenance_mode')
+            .limit(1)
+            .single();
+        if (error) throw error;
+        return Boolean(data?.maintenance_mode);
+    } catch (error) {
+        console.warn('[settings-logic] No se pudo consultar maintenance_mode:', error);
+        return false;
+    }
+}
+
+/**
+ * Se suscribe en tiempo real (Supabase Realtime) a cambios de UPDATE sobre la
+ * fila de store_settings, para reaccionar de inmediato cuando el admin activa o
+ * desactiva el modo mantenimiento, sin necesidad de recargar tienda.html.
+ *
+ * @param {Object} supabase - Instancia del cliente de Supabase.
+ * @param {(isMaintenance: boolean) => void} onChange - Callback con el nuevo estado.
+ * @returns {Object|null} El canal de Supabase Realtime (para poder desuscribirse con channel.unsubscribe()).
+ */
+export function subscribeMaintenanceMode(supabase, onChange) {
+    if (!supabase || typeof onChange !== 'function') return null;
+
+    const channel = supabase
+        .channel('store-settings-maintenance')
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: PRIMARY_SETTINGS_TABLE },
+            (payload) => {
+                onChange(Boolean(payload.new?.maintenance_mode));
+            }
+        )
+        .subscribe();
+
+    return channel;
 }
 
 export async function updateCurrentProfileLanguage(supabase, preferredLanguage) {

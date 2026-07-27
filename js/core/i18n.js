@@ -225,6 +225,10 @@ export const translations = {
                 validationError: 'Por favor ingresa tu nombre y número de contacto.',
                 success: '¡Solicitud enviada! Te avisaremos cuando haya stock.',
             },
+            maintenance: {
+                title: '🛠️ ¡Atención querido usuario!',
+                message: 'Estamos trabajando en rellenar la tienda con tus productos favoritos y refrescando nuestro catálogo. Vuelve muy pronto.',
+            },
             whatsapp: {
                 greeting: 'Hola! Este es el ticket de mi orden por favor',
                 newOrderTitle: 'Nuevo Pedido - Prem Vida',
@@ -435,6 +439,10 @@ export const translations = {
                 submit: 'Send Request',
                 validationError: 'Please enter your name and contact number.',
                 success: 'Request sent! We will let you know when it is back in stock.',
+            },
+            maintenance: {
+                title: '🛠️ Notice to our customers!',
+                message: 'We are currently restocking your favorite products and updating our store. Please check back shortly.',
             },
             whatsapp: {
                 greeting: 'Hello! Here is the ticket for my order, please',

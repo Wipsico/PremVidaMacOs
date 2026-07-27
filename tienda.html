@@ -102,6 +102,17 @@
     </div>
 </header>
 
+<!-- OVERLAY DE MANTENIMIENTO (oculto por defecto; se activa via Supabase Realtime) -->
+<div id="maintenance-overlay" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-black/75 backdrop-blur-xl px-4">
+    <div class="glass w-full max-w-md rounded-3xl border border-white/10 p-8 shadow-2xl pop-in text-center bg-white/5">
+        <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-amber-400 text-3xl">construction</span>
+        </div>
+        <h2 class="font-bold text-lg text-on-surface mb-3" data-i18n="store.maintenance.title">🛠️ ¡Atención querido usuario!</h2>
+        <p class="text-sm text-on-surface-variant leading-relaxed" data-i18n="store.maintenance.message">Estamos trabajando en rellenar la tienda con tus productos favoritos y refrescando nuestro catálogo. Vuelve muy pronto.</p>
+    </div>
+</div>
+
 <!-- HERO -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-10 text-center">
     <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6">
@@ -251,6 +262,7 @@
 <!-- MAIN SCRIPT -->
 <script type="module">
     import { t, getCurrentLang, setCurrentLang, applyTranslations } from './js/core/i18n.js';
+    import { fetchMaintenanceMode, subscribeMaintenanceMode } from './js/core/settings-logic.js';
 
     // ==========================================
     // 1. CREDENCIALES OFICIALES / FALLBACK PUBLICO
@@ -288,6 +300,7 @@
         deliveryType: 'pickup',
         paymentMethod: 'QR',
         isCartOpen: false,
+        isMaintenanceMode: false,
     };
 
     // ==========================================
@@ -298,7 +311,29 @@
         setupUIListeners();
         await loadProducts();
         subscribeToRealtimeStock();
+
+        // Modo mantenimiento: lectura inicial + suscripción en tiempo real.
+        try {
+            const initialMaintenance = await fetchMaintenanceMode(supabaseClient);
+            toggleMaintenanceOverlay(initialMaintenance);
+        } catch (err) {
+            console.warn('No se pudo obtener el estado inicial de mantenimiento:', err);
+        }
+        subscribeMaintenanceMode(supabaseClient, toggleMaintenanceOverlay);
     });
+
+    // ==========================================
+    // 3b. MODO MANTENIMIENTO
+    // ==========================================
+    function toggleMaintenanceOverlay(isMaintenance) {
+        state.isMaintenanceMode = Boolean(isMaintenance);
+        const overlay = document.getElementById('maintenance-overlay');
+        if (!overlay) return;
+        overlay.classList.toggle('hidden', !state.isMaintenanceMode);
+        if (state.isMaintenanceMode) {
+            applyTranslations(getCurrentLang());
+        }
+    }
 
     // ==========================================
     // 4. LECTURA DE PRODUCTOS (CATCH BLOCKS APLICADOS)
@@ -455,6 +490,10 @@
     // Y VALIDACIÓN MATEMÁTICA
     // ==========================================
     window.addToCart = function(productId) {
+        if (state.isMaintenanceMode) {
+            showToast('construction', t('store.maintenance.title', getCurrentLang()), 'warning');
+            return;
+        }
         const product = state.products.find(p => p.id === productId);
         if (!product || product.stock === 0) {
             showToast('error', 'Producto sin stock disponible.', 'error');
@@ -935,6 +974,10 @@ ${t('store.whatsapp.total', lang)}: ${CURRENCY} ${total.toFixed(2)}`;
     // 9. LÓGICA DE RESERVA Y FEEDBACK
     // ==========================================
     window.openReserveModal = function(productId) {
+        if (state.isMaintenanceMode) {
+            showToast('construction', t('store.maintenance.title', getCurrentLang()), 'warning');
+            return;
+        }
         const product = state.products.find(p => p.id === productId);
         if(!product) return;
         

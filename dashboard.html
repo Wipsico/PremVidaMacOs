@@ -240,20 +240,19 @@
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
 <!-- SVG Orders Chart -->
-                <div class="glass-card p-6 rounded-2xl xl:col-span-2 space-y-4">
-                    <div class="flex justify-between items-center border-b border-white/5 pb-4">
-                        <div>
-                            <h4 class="font-bold text-base text-on-surface">Tendencia de Ventas</h4>
-                            <p class="text-xs text-on-surface-variant mt-0.5">Últimos 6 meses · En Bolívares (Bs.)</p>
-                        </div>
-                        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">En Vivo</span>
-                    </div>
-                    <!-- Chart container — rendered by JS -->
-                    <div id="orders-chart" class="w-full" style="height:180px;"></div>
-                <!-- Month labels -->
-                <div id="chart-labels" class="flex justify-between px-2 text-[10px] text-on-surface-variant font-medium"></div>
-            </div>
-
+         <div class="glass-card p-6 rounded-2xl xl:col-span-2 space-y-4">
+    <div class="flex justify-between items-center border-b border-white/5 pb-4">
+        <div>
+            <h4 class="font-bold text-base text-on-surface">Tendencia de Ventas</h4>
+            <p class="text-xs text-on-surface-variant mt-0.5">Últimos 6 meses · En Bolívares (Bs.)</p>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">En Vivo</span>
+    </div>
+    <!-- Chart container — rendered by JS -->
+    <div id="orders-chart" class="w-full" style="height:180px;"></div>
+    <!-- Month labels -->
+    <div id="chart-labels" class="flex justify-between px-2 text-[10px] text-on-surface-variant font-medium"></div>
+          </div>
             <!-- Critical Stock Alerts Panel -->
             <div class="glass-card p-6 rounded-2xl flex flex-col gap-4">
                 <div class="flex justify-between items-center border-b border-white/5 pb-3">
@@ -412,7 +411,7 @@
 
         const today = new Date().toISOString().split('T')[0];
 
-        const { data, error } = await sbClient
+        let  { data, error } = await sbClient
             .from('products')
             .select('id, name, category, price, stock, expiry_date')
             .order('expiry_date', { ascending: true })
@@ -703,10 +702,26 @@
 <!-- ══ LÓGICA: MODALES DASHBOARD ══════════════════════════════ -->
 <script>
 // ── Helpers de modal ────────────────────────────────────────────
-function abrirModalVenta()  { document.getElementById('modal-venta').classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
-function cerrarModalVenta() { document.getElementById('modal-venta').classList.add('hidden'); document.getElementById('form-venta').reset(); document.body.classList.remove('overflow-hidden'); }
-function abrirModalGasto()  { document.getElementById('modal-gasto').classList.remove('hidden'); document.getElementById('gasto-fecha').value = new Date().toISOString().split('T')[0]; document.body.classList.add('overflow-hidden'); }
-function cerrarModalGasto() { document.getElementById('modal-gasto').classList.add('hidden'); document.getElementById('form-gasto').reset(); document.body.classList.remove('overflow-hidden'); }
+window.abrirModalVenta = function() { 
+    document.getElementById('modal-venta')?.classList.remove('hidden'); 
+    document.body.classList.add('overflow-hidden'); 
+};
+window.cerrarModalVenta = function() { 
+    document.getElementById('modal-venta')?.classList.add('hidden'); 
+    document.getElementById('form-venta')?.reset(); 
+    document.body.classList.remove('overflow-hidden'); 
+};
+window.abrirModalGasto = function() { 
+    document.getElementById('modal-gasto')?.classList.remove('hidden'); 
+    const inputFecha = document.getElementById('gasto-fecha');
+    if (inputFecha) inputFecha.value = new Date().toISOString().split('T')[0]; 
+    document.body.classList.add('overflow-hidden'); 
+};
+window.cerrarModalGasto = function() { 
+    document.getElementById('modal-gasto')?.classList.add('hidden'); 
+    document.getElementById('form-gasto')?.reset(); 
+    document.body.classList.remove('overflow-hidden'); 
+};
 
 // ── Toast helper local ─────────────────────────────────────────
 function dashToast(icon, msg, type) {
@@ -718,6 +733,21 @@ function dashToast(icon, msg, type) {
     i.className = `material-symbols-outlined ${type === 'error' ? 'text-red-500' : type === 'warning' ? 'text-amber-500' : 'text-primary'}`;
     t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all duration-300 pointer-events-auto opacity-100 translate-y-0';
     setTimeout(() => { t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none'; }, 4000);
+}
+// ── Helper para obtener el cliente de Supabase de forma segura ─
+function getSupabase() {
+    if (window.supabaseClient) return window.supabaseClient;
+    const url = localStorage.getItem('supabaseUrl');
+    const key = localStorage.getItem('supabaseKey');
+    if (url && key && typeof window.supabase !== 'undefined') {
+        try {
+            window.supabaseClient = window.supabase.createClient(url, key);
+            return window.supabaseClient;
+        } catch (e) {
+            console.error('Error al instanciar Supabase:', e);
+        }
+    }
+    return null;
 }
 
 // ── Generador de código de orden ───────────────────────────────
@@ -738,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formVenta = document.getElementById('form-venta');
     if (formVenta) {
         formVenta.addEventListener('submit', async () => {
-            const sb = window.supabaseClient || sbClient;
+            const sb = getSupabase();
 
             if (!sb) {
                 dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
@@ -771,8 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }]);
 
                 if (error) throw error;
-
-                cerrarModalVenta();
+                window.cerrarMOdalVenta();
                 dashToast('check_circle', `Venta de Bs. ${monto.toFixed(2)} registrada correctamente.`, 'success');
                 // Refrescar dashboard
                 if (typeof loadDashboard === 'function') loadDashboard();
@@ -787,10 +816,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Form: Añadir Gasto ───────────────────────────────────────
-    const formGasto = document.getElementById('form-gasto');
+   const formGasto = document.getElementById('form-gasto');
     if (formGasto) {
         formGasto.addEventListener('submit', async () => {
-            const sb = window.supabaseClient || sbClient;
+            const sb = getSupabase();
 
             if (!sb) {
                 dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
@@ -820,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (error) throw error;
 
-                cerrarModalGasto();
+                window.cerrarModalGasto();
                 dashToast('check_circle', `Gasto de Bs. ${monto.toFixed(2)} (${categoria}) registrado.`, 'success');
                 if (typeof loadDashboard === 'function') loadDashboard();
             } catch (err) {
