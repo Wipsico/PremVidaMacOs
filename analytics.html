@@ -196,7 +196,7 @@ async function initAnalytics() {
 
         const kpiPerdida = document.getElementById('kpi-perdida');
         if (kpiPerdida) kpiPerdida.textContent = `Bs. ${lossEstimated.toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
-        
+
         const merma = totalValuation > 0 ? (lossEstimated / totalValuation) * 100 : 0;
         const kpiMerma = document.getElementById('kpi-merma');
         if (kpiMerma) kpiMerma.textContent = `${merma.toFixed(1)} %`;

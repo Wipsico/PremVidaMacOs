@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/core/shared.js" defer></script>
+    <script type="module" src="js/core/shared.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -330,35 +330,67 @@
 <script type="module">
     import { fetchDashboardStats, renderOrdersChart } from './js/core/dashboard-logic.js';
 
-    // ── Auth guard ──────────────────────────────────────────────────
-    // ── Supabase init ────────────────────────────────────────────────
-    const supabaseUrl = localStorage.getItem('supabaseUrl');
-    const supabaseKey = localStorage.getItem('supabaseKey');
-  // En lugar de hacer supabase.createClient(...) en cada archivo:
-    const sb = window.supabaseClient;
+    // ── Supabase Init Fix ─────────────────────────────────────────────
+    let sbClient = window.supabaseClient;
 
-    if (!sbClient && supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
-        try {
-            sbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-        } catch (e) {
-            console.warn('Supabase init error:', e);
+    if (!sbClient) {
+        const supabaseUrl = localStorage.getItem('supabaseUrl');
+        const supabaseKey = localStorage.getItem('supabaseKey');
+
+        if (supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
+            try {
+                sbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                window.supabaseClient = sbClient;
+            } catch (e) {
+                console.warn('Supabase init error:', e);
+            }
         }
+    }
+
+    // ── Helper para Sanear HTML ──────────────────────────────────────
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Helper de Animación ──────────────────────────────────────────
+    function animateValue(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
     }
 
     // ── DOM Ready ────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        setupAvatarDropdown();
+        // Reintentar capturar sbClient si venía cargando asíncronamente
+        if (!sbClient && window.supabaseClient) {
+            sbClient = window.supabaseClient;
+        }
+
+        if (typeof setupAvatarDropdown === 'function') setupAvatarDropdown();
         loadDashboard();
 
-        document.getElementById('btn-refresh').addEventListener('click', loadDashboard);
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            if (window.premVidaLogout) window.premVidaLogout();
-            else window.location.href = 'login.html';
-        });
+        const btnRefresh = document.getElementById('btn-refresh');
+        if (btnRefresh) btnRefresh.addEventListener('click', loadDashboard);
+
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                if (window.premVidaLogout) window.premVidaLogout();
+                else window.location.href = 'login.html';
+            });
+        }
     });
 
     // ── Load all dashboard data ──────────────────────────────────────
     async function loadDashboard() {
+        if (!sbClient && window.supabaseClient) {
+            sbClient = window.supabaseClient;
+        }
+
         // Las dos cargas son paralelas e independientes para no bloquear la UI
         const [statsResult] = await Promise.allSettled([
             fetchDashboardStats(sbClient)
@@ -368,14 +400,15 @@
             const stats = statsResult.value;
             renderStats(stats);
             renderCriticalList(stats.criticalProducts);
-            renderOrdersChart('orders-chart', 'chart-labels', stats.chartData);
+            if (typeof renderOrdersChart === 'function') {
+                renderOrdersChart('orders-chart', 'chart-labels', stats.chartData);
+            }
         } else {
             const err = statsResult.reason;
             console.error('Dashboard load error:', err);
-            if (String(err).includes('fetch') || err instanceof TypeError) {
-                showHibernationBanner();
+            if (typeof showToast === 'function') {
+                showToast('warning', 'Verifica la conexión con la base de datos.', 'warning');
             }
-            showToast('warning', 'Verifica la conexión. El servidor podría estar en suspensión.', 'warning');
         }
 
         // Panel de Sugerencias — llamada paralela, falla sin bloquear el resto
@@ -399,16 +432,14 @@
             return;
         }
 
-        const today = new Date().toISOString().split('T')[0];
-
-        let  { data, error } = await sbClient
+        let { data, error } = await sbClient
             .from('products')
             .select('id, name, category, price, stock, expiry_date')
             .order('expiry_date', { ascending: true })
             .limit(8);
 
         if (error) {
-            if (String(error.message || '').toLowerCase().includes('column "expiry_date" does not exist') || String(error.message || '').toLowerCase().includes('could not find the column')) {
+            if (String(error.message || '').toLowerCase().includes('expiry_date')) {
                 const fallback = await sbClient
                     .from('products')
                     .select('id, name, category, price, stock')
@@ -436,7 +467,7 @@
             let badgeClass, badgeLabel;
 
             if (p.expiry_date) {
-                const exp = new Date(p.expiry_date);
+                const exp = new Date(p.expiry_date + 'T00:00:00');
                 const daysLeft = Math.ceil((exp - new Date()) / 86400000);
 
                 if (daysLeft < 0) {
@@ -473,25 +504,27 @@
     }
 
     function renderStats(stats) {
-        animateValue('stat-revenue', `Bs. ${stats.revenue.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`);
-        animateValue('stat-orders', stats.ordersCount);
-        animateValue('stat-critical', stats.criticalCount);
-        animateValue('stat-valuation', `Bs. ${stats.valuation.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`);
+        animateValue('stat-revenue', `Bs. ${(stats.revenue || 0).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`);
+        animateValue('stat-orders', stats.ordersCount || 0);
+        animateValue('stat-critical', stats.criticalCount || 0);
+        animateValue('stat-valuation', `Bs. ${(stats.valuation || 0).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`);
 
         const labelEl = document.getElementById('stat-critical-label');
-        if (stats.criticalCount > 0) {
-            labelEl.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span><span class="text-red-400 font-semibold">Requiere reabastecimiento inmediato</span>`;
-        } else {
-            labelEl.innerHTML = `<span class="material-symbols-outlined text-xs text-primary">check_circle</span><span class="text-primary">Inventario saludable</span>`;
+        if (labelEl) {
+            if (stats.criticalCount > 0) {
+                labelEl.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span><span class="text-red-400 font-semibold">Requiere reabastecimiento inmediato</span>`;
+            } else {
+                labelEl.innerHTML = `<span class="material-symbols-outlined text-xs text-primary">check_circle</span><span class="text-primary">Inventario saludable</span>`;
+            }
         }
 
-        // Status dot: show green if connected
-        document.getElementById('db-status-dot').classList.add('hidden');
+        const dot = document.getElementById('db-status-dot');
+        if (dot) dot.classList.add('hidden');
     }
 
-    // ── Render critical stock list ──────────────────────────────────
     function renderCriticalList(products) {
         const el = document.getElementById('critical-products-list');
+        if (!el) return;
         if (!products || products.length === 0) {
             el.innerHTML = `<p class="text-xs text-on-surface-variant text-center py-8">✅ Sin alertas de stock crítico.</p>`;
             return;
@@ -507,58 +540,6 @@
                 </span>
             </div>
         `).join('');
-    }
-
-    // ── Avatar dropdown toggle ──────────────────────────────────────
-    function setupAvatarDropdown() {
-        const btn = document.getElementById('avatar-btn');
-        const drop = document.getElementById('profile-dropdown');
-        btn.addEventListener('click', e => { e.stopPropagation(); drop.classList.toggle('hidden'); });
-        document.addEventListener('click', () => drop.classList.add('hidden'));
-        drop.addEventListener('click', e => e.stopPropagation());
-    }
-
-    // ── Anti-hibernation banner ─────────────────────────────────────
-    function showHibernationBanner() {
-        if (document.getElementById('hibernation-banner')) return;
-        const banner = document.createElement('div');
-        banner.id = 'hibernation-banner';
-        banner.className = 'fixed top-0 left-0 right-0 z-[200] flex items-center justify-center gap-3 px-6 py-3 text-sm font-medium text-amber-200';
-        banner.style.cssText = 'background:rgba(120,80,0,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(245,158,11,0.4)';
-        banner.innerHTML = `
-            <span class="material-symbols-outlined text-amber-400">warning</span>
-            <span><strong>⚠️ Servidor en suspensión:</strong> Si el catálogo no carga, ingresa a tu consola de Supabase y haz clic en <strong>'Restore Project'</strong>.</span>
-            <button onclick="document.getElementById('hibernation-banner').remove()" class="ml-4 p-1 hover:bg-white/10 rounded-full">
-                <span class="material-symbols-outlined text-sm">close</span>
-            </button>`;
-        document.body.prepend(banner);
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────
-    function animateValue(id, val) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = val;
-        el.classList.remove('counter-anim');
-        void el.offsetWidth; // reflow
-        el.classList.add('counter-anim');
-    }
-
-    function escHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function showToast(icon, msg, type = 'success') {
-        const t = document.getElementById('toast');
-        const i = document.getElementById('toast-icon');
-        const m = document.getElementById('toast-message');
-        i.textContent = icon;
-        m.textContent = msg;
-        i.className = `material-symbols-outlined ${type==='error'?'text-red-500':type==='warning'?'text-amber-500':'text-primary'}`;
-        t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all duration-300 pointer-events-auto opacity-100 translate-y-0';
-        setTimeout(() => {
-            t.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none';
-        }, 4000);
     }
 </script>
 <div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-venta">
