@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }]);
 
                 if (error) throw error;
-                window.cerrarMOdalVenta();
+                window.cerrarModalVenta();
                 dashToast('check_circle', `Venta de Bs. ${monto.toFixed(2)} registrada correctamente.`, 'success');
                 // Refrescar dashboard
                 if (typeof loadDashboard === 'function') loadDashboard();

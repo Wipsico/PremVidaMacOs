@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const text = `${name} ${notes}`.toLowerCase();
         if (text.includes('heartbeef')) return 'heartbeef';
         if (text.includes('green') || text.includes('leaf')) return 'green-leaf';
-        return 'otros'; // Clientes particulares / personas
+        return 'otros'; 
     }
 
     // 5. Configuración de Tabs de Filtrado ("Todas", "Heartbeef", "Green Leaf", "Otros")
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 6. Renderizar Tabla de Órdenes (Con basurero afuera y selector ⚙️)
+    // 6. Renderizar Tabla de Órdenes
     function renderOrders(rows) {
         if (!tableBody) return;
 
@@ -153,7 +153,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isCompleted = status === 'completada' || status === 'completado';
             const isCanceled = status === 'cancelada' || status === 'cancelado';
 
-            // Opciones del selector dinámico (⚙️ Decisión)
             let selectOptions = `<option value="" disabled selected class="bg-zinc-900 text-zinc-500">⚙️ Opción</option>`;
 
             if (isPending) {
@@ -189,22 +188,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="inline-flex items-center gap-2">
-                            <!-- Selector Decisión (⚙️) -->
                             <select data-id="${escapeHtml(rawId)}" data-status="${status}" class="action-select bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-xs font-medium text-zinc-200 rounded-lg px-2.5 py-1.5 transition-all focus:outline-none focus:border-zinc-500 cursor-pointer shadow-sm">
                                 ${selectOptions}
                             </select>
-
-                            <!-- Botón Ojito (Ver Detalle) -->
                             <button data-order-id="${escapeHtml(rawId)}" class="btn-view-order text-zinc-400 hover:text-white transition material-symbols-outlined text-lg p-1.5 rounded-lg hover:bg-zinc-800" title="Ver detalle">visibility</button>
-
-                            <!-- Botón Basurero (Eliminar) al lado del ojito -->
                             <button data-id="${escapeHtml(rawId)}" data-status="${status}" class="btn-delete-order text-zinc-500 hover:text-red-400 transition material-symbols-outlined text-lg p-1.5 rounded-lg hover:bg-red-500/10" title="Eliminar registro">delete</button>
                         </div>
                     </td>
                 </tr>`;
         }).join('');
 
-        // Listeners para acciones de tabla
         tableBody.querySelectorAll('.btn-view-order').forEach(btn => {
             btn.addEventListener('click', () => openTransactionDetail(btn.dataset.orderId));
         });
@@ -281,7 +274,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Manejo de Inventario (Descontar / Devolver Stock)
     async function manejarDescuentoStock(ordenId) {
         try {
             const { data: items } = await supabase.from(ORDER_ITEMS_TABLE).select('product_id, quantity').eq('order_id', ordenId);
@@ -332,7 +324,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button id="modal-close-x" class="text-zinc-400 hover:text-white material-symbols-outlined cursor-pointer">close</button>
                 </div>
 
-                <!-- Fila 1: Tipo de Registro & Pertenencia -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Tipo de Registro</label>
@@ -352,7 +343,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Fila 2: Cliente / Proveedor (Con historial guardado) -->
                 <div>
                     <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Cliente / Proveedor</label>
                     <input id="modal-customer-input" list="saved-entities-list" type="text" placeholder="Ingresa o selecciona cliente/proveedor..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" />
@@ -361,7 +351,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </datalist>
                 </div>
 
-                <!-- Buscador Inteligente de Productos -->
                 <div class="relative">
                     <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Agregar Productos (Buscador Inteligente)</label>
                     <div class="relative">
@@ -371,7 +360,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div id="modal-search-results" class="hidden absolute z-50 left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-xl max-h-48 overflow-y-auto shadow-2xl"></div>
                 </div>
 
-                <!-- Carrito de Productos (Estilo "Tu Carrito") -->
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-xs uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-1.5">
@@ -384,7 +372,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Tipo de Entrega (Retirar en tienda / Envío a domicilio) -->
                 <div>
                     <label class="text-xs uppercase tracking-wider text-zinc-400 font-bold mb-2 block">Tipo de Entrega</label>
                     <div class="grid grid-cols-2 gap-3">
@@ -397,7 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Detalle de Transferencia y Monto Total -->
                 <div class="grid grid-cols-2 gap-3 border-t border-zinc-800 pt-4">
                     <div>
                         <label class="text-xs uppercase text-zinc-400 font-semibold mb-1 block">Detalle / Ref. Transferencia</label>
@@ -409,10 +395,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Botones de Acción -->
                 <div class="flex justify-end gap-3 pt-2">
                     <button id="modal-cancel-btn" type="button" class="px-5 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:bg-zinc-900 text-sm font-semibold transition">Cancelar</button>
-                    <button id="modal-save-btn" type="button" class="px-6 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 hover:bg-emerald-400 text-sm font-bold flex items-center gap-2 transition shadow-lg">
+                    <button id="modal-save-btn" type="button" class="px-6 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 hover:bg-emerald-400 text-sm font-bold flex items-center gap-2 transition shadow-lg cursor-pointer">
                         <span class="material-symbols-outlined text-base">check</span> Guardar Orden
                     </button>
                 </div>
@@ -425,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initModalCartLogic(modalOverlay);
     }
 
-    // 10. Lógica de Eventos del Modal y Carrito estilo Tu Carrito
+    // 10. Lógica de Eventos del Modal y Carrito
     function initModalCartLogic(modalOverlay) {
         const closeX = document.getElementById('modal-close-x');
         const cancelBtn = document.getElementById('modal-cancel-btn');
@@ -443,7 +428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeX?.addEventListener('click', closeModal);
         cancelBtn?.addEventListener('click', closeModal);
 
-        // Selección de Tipo de Entrega
         btnTienda?.addEventListener('click', () => {
             activeDeliveryType = 'tienda';
             btnTienda.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold text-xs transition";
@@ -456,7 +440,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnTienda.className = "delivery-option-btn flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-800 bg-zinc-900/60 text-zinc-400 font-bold text-xs transition";
         });
 
-        // Buscador Inteligente
         searchInput?.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
             if (!query) {
@@ -496,7 +479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchResults.classList.remove('hidden');
         });
 
-        // Guardar la orden en Supabase
+        // Guardar la orden en Supabase con validación de carrito
         saveBtn?.addEventListener('click', async () => {
             const customerInput = document.getElementById('modal-customer-input').value.trim();
             const orderType = document.getElementById('modal-order-type').value;
@@ -505,33 +488,58 @@ document.addEventListener('DOMContentLoaded', async () => {
             const amountInput = parseFloat(document.getElementById('modal-total-amount').value) || 0;
 
             if (!customerInput) {
-                alert('Por favor, ingresa el nombre del Cliente o Proveedor.');
+                window.showToast?.('warning', 'Por favor, ingresa el nombre del Cliente o Proveedor.', 'warning');
+                return;
+            }
+            if (cartItems.length === 0) {
+                window.showToast?.('warning', 'Debes agregar al menos un producto al carrito.', 'warning');
                 return;
             }
             if (amountInput <= 0) {
-                alert('El monto total debe ser superior a Bs. 0.00');
+                window.showToast?.('warning', 'El monto total debe ser superior a Bs. 0.00', 'warning');
                 return;
             }
 
-            // Guardar cliente en historial
             saveEntityToHistory(customerInput);
 
             const entityFormatted = brandBelonging !== 'Otros' ? `${customerInput} (${brandBelonging})` : customerInput;
+            const newOrderCode = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
             const newOrderPayload = {
-                order_code: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
+                order_code: newOrderCode,
                 customer_name: entityFormatted,
                 payment_method: `${orderType} | ${transferDetail || 'Directo'}`,
                 delivery_type: activeDeliveryType === 'tienda' ? 'Retirar en tienda' : 'Envío a domicilio',
-                delivery_notes: `A pertenece a: ${brandBelonging}. Ref: ${transferDetail || 'N/A'}`,
+                delivery_notes: `Pertenece a: ${brandBelonging}. Ref: ${transferDetail || 'N/A'}`,
                 total_amount: amountInput,
                 status: 'espera_aprobacion',
             };
 
             if (supabase) {
-                const { error } = await supabase.from(ORDER_TABLE).insert([newOrderPayload]);
-                if (error) {
-                    alert(`Error guardando la orden: ${error.message}`);
+                // 1. Insertar orden principal
+                const { data: insertedOrder, error: orderError } = await supabase
+                    .from(ORDER_TABLE)
+                    .insert([newOrderPayload])
+                    .select()
+                    .single();
+
+                if (orderError) {
+                    window.showToast?.('error', `Error guardando la orden: ${orderError.message}`, 'error');
                     return;
+                }
+
+                // 2. Insertar los ítems asociados en order_items
+                if (insertedOrder && insertedOrder.id) {
+                    const orderItemsPayload = cartItems.map(item => ({
+                        order_id: insertedOrder.id,
+                        product_id: item.id,
+                        quantity: item.quantity,
+                        unit_price: item.price
+                    }));
+
+                    const { error: itemsError } = await supabase.from(ORDER_ITEMS_TABLE).insert(orderItemsPayload);
+                    if (itemsError) {
+                        console.warn('[orders] Error al guardar los ítems de la orden:', itemsError);
+                    }
                 }
             }
 
@@ -541,7 +549,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Agregar Producto al Carrito
     function addProductToCartModal(prod) {
         const found = cartItems.find(item => item.id === prod.id);
         if (found) {
@@ -558,7 +565,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCartUI();
     }
 
-    // Renderizar la UI exacta de "Tu Carrito"
     function renderCartUI() {
         const container = document.getElementById('cart-items-container');
         const itemCountLabel = document.getElementById('cart-item-count');
@@ -569,6 +575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!cartItems.length) {
             container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-6 border border-dashed border-zinc-800 rounded-2xl">No hay productos en el carrito. Utiliza el buscador arriba.</p>`;
             if (itemCountLabel) itemCountLabel.textContent = '0 ítems';
+            if (amountInput) amountInput.value = '0.00';
             return;
         }
 
@@ -603,7 +610,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (itemCountLabel) itemCountLabel.textContent = `${totalItemsQty} ítem(s)`;
         if (amountInput) amountInput.value = totalCartSum.toFixed(2);
 
-        // Listeners para botones + / -
         container.querySelectorAll('.cart-qty-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = parseInt(e.currentTarget.dataset.index, 10);
@@ -620,7 +626,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 11. Utilidades y Guardado de Historial
     function saveEntityToHistory(name) {
         if (!name) return;
         let list = getSavedEntities();
@@ -658,7 +663,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (codeResult) {
                 codeResult.classList.remove('hidden');
-                
                 const isPending = ['pendiente', 'espera_aprobacion'].includes(String(data.status).toLowerCase());
                 
                 codeResult.innerHTML = `<div class="p-4 bg-zinc-900 rounded-xl border ${isPending ? 'border-emerald-500/50' : 'border-zinc-800'} text-xs text-zinc-200 space-y-2">
@@ -694,7 +698,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             confirmBtn.disabled = true;
             confirmBtn.innerHTML = `<div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-zinc-950 border-t-transparent"></div> Procesando...`;
 
-            const { data, error } = await supabase.rpc('confirm_order', {
+            const { error } = await supabase.rpc('confirm_order', {
                 p_order_id: currentOrderToConfirm
             });
 
@@ -702,14 +706,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             window.showToast?.('check_circle', '¡Pago registrado! El stock ha sido descontado correctamente.', 'success');
             
-            // Limpiar y resetear UI
             currentOrderToConfirm = null;
             codeInput.value = '';
             if (codeResult) codeResult.classList.add('hidden');
             
             confirmBtn.innerHTML = `<span class="material-symbols-outlined text-lg">payments</span> Registrar Pago`;
-            
-            // Recargar la tabla
             await loadOrders();
         } catch (err) {
             console.error('[orders] Error al confirmar orden:', err);
@@ -719,8 +720,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // 11. Modal real para ver detalles de la orden y sus ítems
     async function openTransactionDetail(orderId) {
-        alert(`Mostrando detalle de la transacción: ${orderId}`);
+        if (!supabase) return;
+
+        const modalOverlay = document.getElementById('transaction-modal') || document.getElementById('manual-order-modal');
+        if (!modalOverlay) return;
+
+        try {
+            // Consultar datos de la orden y sus ítems en paralelo
+            const [orderRes, itemsRes] = await Promise.all([
+                supabase.from(ORDER_TABLE).select('*').eq('id', orderId).single(),
+                supabase.from(ORDER_ITEMS_TABLE).select(`
+                    quantity,
+                    unit_price,
+                    products ( name, sku, image_url )
+                `).eq('order_id', orderId)
+            ]);
+
+            if (orderRes.error) throw orderRes.error;
+            const order = orderRes.data;
+            const items = itemsRes.data || [];
+
+            modalOverlay.innerHTML = `
+                <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 w-full max-w-lg mx-auto shadow-2xl space-y-5 text-zinc-200 animate-fadeIn max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-emerald-400">receipt_long</span> Detalle de Orden: ${escapeHtml(order.order_code || orderId.slice(0, 8))}
+                        </h3>
+                        <button id="modal-close-x" class="text-zinc-400 hover:text-white material-symbols-outlined cursor-pointer">close</button>
+                    </div>
+
+                    <div class="space-y-2 text-xs bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/80">
+                        <p><strong>Cliente:</strong> ${escapeHtml(order.customer_name)}</p>
+                        <p><strong>Estado:</strong> <span class="text-emerald-400 font-semibold">${escapeHtml(order.status)}</span></p>
+                        <p><strong>Tipo / Pago:</strong> ${escapeHtml(order.payment_method)}</p>
+                        <p><strong>Entrega:</strong> ${escapeHtml(order.delivery_type)}</p>
+                        <p><strong>Notas:</strong> ${escapeHtml(order.delivery_notes || 'Ninguna')}</p>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs uppercase font-bold text-zinc-400 mb-2">Productos en esta orden</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            ${items.length === 0 ? '<p class="text-xs text-zinc-500 text-center py-4">No hay ítems registrados para esta orden.</p>' : items.map(i => {
+                                const prodName = i.products?.name || 'Producto Desconocido';
+                                const prodSku = i.products?.sku || 'S/N';
+                                const lineTotal = Number(i.quantity) * Number(i.unit_price);
+                                return `
+                                    <div class="flex items-center justify-between p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                        <div>
+                                            <p class="text-xs font-bold text-white">${escapeHtml(prodName)}</p>
+                                            <p class="text-[10px] text-zinc-400">SKU: ${escapeHtml(prodSku)} | Cant: ${i.quantity} x Bs. ${Number(i.unit_price).toFixed(2)}</p>
+                                        </div>
+                                        <span class="text-xs font-bold text-emerald-400">Bs. ${lineTotal.toFixed(2)}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="border-t border-zinc-800 pt-3 flex justify-between items-center">
+                        <span class="text-sm font-bold text-white">Monto Total:</span>
+                        <span class="text-base font-extrabold text-emerald-400">Bs. ${Number(order.total_amount || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button id="modal-close-btn" type="button" class="px-5 py-2 rounded-xl bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-xs font-semibold transition cursor-pointer">Cerrar</button>
+                    </div>
+                </div>
+            `;
+
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
+
+            const closeModal = () => {
+                modalOverlay.classList.add('hidden');
+                modalOverlay.classList.remove('flex');
+            };
+
+            document.getElementById('modal-close-x')?.addEventListener('click', closeModal);
+            document.getElementById('modal-close-btn')?.addEventListener('click', closeModal);
+
+        } catch (err) {
+            console.error('[orders] Error al cargar detalle:', err);
+            window.showToast?.('error', 'No se pudo cargar el detalle de la orden.', 'error');
+        }
     }
 
     function exportVisibleRows() {

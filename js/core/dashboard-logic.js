@@ -1,7 +1,6 @@
 /**
  * Prem Vida – Dashboard Logic Module
- * Realiza consultas directas a las tablas de Supabase 'orders' y 'products'
- * y renderiza el gráfico SVG dinámico de rendimiento financiero.
+ * Módulo optimizado y blindado para estadísticas y gráficos del panel.
  */
 
 const FALLBACK_STATS = {
@@ -24,8 +23,10 @@ export async function fetchDashboardStats(supabase) {
     }
 
     try {
-        const ordersRes = await supabase.from('orders').select('total_amount, status');
-        const productsRes = await supabase.from('products').select('id, name, price, stock, category, is_active');
+        const [ordersRes, productsRes] = await Promise.all([
+            supabase.from('orders').select('total_amount, status'),
+            supabase.from('products').select('id, name, price, stock, category, is_active')
+        ]);
 
         if (ordersRes.error) throw ordersRes.error;
         if (productsRes.error) throw productsRes.error;
@@ -33,20 +34,20 @@ export async function fetchDashboardStats(supabase) {
         const orders = ordersRes.data || [];
         const products = productsRes.data || [];
 
-        // 1. Ingresos Totales (Ventas confirmadas)
+        // 1. Ingresos Totales (Ventas confirmadas con normalización segura)
         const revenue = orders
-            .filter(o => String(o.status || '').toLowerCase() === 'confirmado')
+            .filter(o => String(o.status || '').trim().toLowerCase() === 'confirmado')
             .reduce((acc, o) => acc + parseFloat(o.total_amount || 0), 0);
 
         // 2. Conteo total de órdenes
         const ordersCount = orders.length;
 
-        // 3. Productos en stock crítico (< 5 unidades)
-        const criticalProducts = products.filter(p => p.is_active && p.stock < 5);
+        // 3. Productos activos en stock crítico (< 5 unidades)
+        const criticalProducts = products.filter(p => p.is_active && Number(p.stock) < 5);
 
-        // 4. Valuación total del almacén
+        // 4. Valuación total del almacén segura
         const valuation = products.reduce(
-            (acc, p) => acc + (parseFloat(p.price || 0) * (parseInt(p.stock || 0))),
+            (acc, p) => acc + (parseFloat(p.price || 0) * parseInt(p.stock || 0, 10)),
             0
         );
 
@@ -83,6 +84,7 @@ export function renderOrdersChart(containerId, labelsId, data) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // Respaldo de ancho si el contenedor está oculto temporalmente
     const W = container.clientWidth || 640;
     const H = 180;
     const PAD = { top: 20, right: 20, bottom: 30, left: 20 };
@@ -90,11 +92,12 @@ export function renderOrdersChart(containerId, labelsId, data) {
     const innerW = W - PAD.left - PAD.right;
     const innerH = H - PAD.top - PAD.bottom;
 
-    const maxVal = Math.max(...data) * 1.15 || 1;
+    const maxVal = Math.max(...data, 1) * 1.15;
     const minVal = 0;
+    const dataPointsCount = data.length > 1 ? data.length - 1 : 1;
 
     const pts = data.map((v, i) => ({
-        x: PAD.left + (i / (data.length - 1)) * innerW,
+        x: PAD.left + (i / dataPointsCount) * innerW,
         y: PAD.top + innerH - ((v - minVal) / (maxVal - minVal)) * innerH,
         v,
     }));
@@ -129,7 +132,7 @@ export function renderOrdersChart(containerId, labelsId, data) {
 
     const labelsEl = document.getElementById(labelsId);
     if (labelsEl) {
-        const months = ['Ene','Feb','Mar','Abr','May','Jun'];
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
         labelsEl.innerHTML = months.map(m => `<span>${m}</span>`).join('');
     }
 }

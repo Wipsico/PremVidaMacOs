@@ -1088,7 +1088,7 @@
             return;
         }
 
-        // Mostramos las 3 órdenes más recientes
+       // Mostramos las 3 órdenes más recientes
         const recentOrders = orders.slice(0, 3);
 
         container.innerHTML = recentOrders.map(order => {
@@ -1157,8 +1157,8 @@
             total += parseFloat(e.amount) || 0;
         });
 
-        // Mostrar total de gastos
-        document.getElementById('monthly-expenses-total').innerText = `Bs. ${total.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
+        // Mostrar total de gastos corregido a estricto formato es-BO
+        document.getElementById('monthly-expenses-total').innerText = `Bs. ${total.toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
 
         container.innerHTML = Object.keys(categories).map(key => {
             const item = categories[key];
@@ -1197,9 +1197,9 @@
             outOfStockLabel.classList.remove('text-error');
         }
 
-        // 3. Valuación Almacén (Suma de precio * stock)
+        // 3. Valuación Almacén corregida a estricto formato es-BO
         const valuation = state.products.reduce((acc, p) => acc + (parseFloat(p.price) * (parseInt(p.stock) || 0)), 0);
-        document.getElementById('total-value-stat').innerText = `Bs. ${valuation.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('total-value-stat').innerText = `Bs. ${valuation.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
     // Muestra una notificación emergente estilizada

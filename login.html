@@ -287,23 +287,14 @@
                 return true;
             }
         }
-        // Función helper segura para leer localStorage sin que la app colapse
-        function safeGetStorage(key) {
-            // Limpieza segura que no rompe la app si el navegador bloquea el almacenamiento
-            try {
-                localStorage.clear();
-            } catch (e) {
-                console.warn('localStorage bloqueado por el navegador:', e);
-            }
-
-            try {
-                sessionStorage.clear();
-            } catch (e) {
-                console.warn('sessionStorage bloqueado por el navegador:', e);
-            }
-        }
-
-
+       function safeGetStorage(key) {
+    try {
+        return localStorage.getItem(key) || sessionStorage.getItem(key);
+    } catch (e) {
+        console.warn('Almacenamiento bloqueado por el navegador:', e);
+        return null;
+    }
+}
         // Reemplaza tus leituras directas por el helper seguro:
         const session = safeGetStorage('sb-access-token');
         function openMfaModal() {
