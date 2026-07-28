@@ -147,49 +147,61 @@
 <script type="module">
 import { fetchProducts } from './js/core/logic.js';
 
-// Wait for shared.js to initialize Supabase
+// Escuchar evento de inicialización o esperar que Supabase esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(initAnalytics, 500);
+    checkAndInit();
 });
 
-async function initAnalytics() {
-    if (!window.supabaseClient) {
-        console.error("Supabase client not initialized.");
-        return;
+function checkAndInit(attempts = 0) {
+    if (window.supabaseClient) {
+        initAnalytics();
+    } else if (attempts < 10) {
+        setTimeout(() => checkAndInit(attempts + 1), 300);
+    } else {
+        console.error("Supabase client not initialized after multiple retries.");
+        showEmptyState();
     }
+}
 
+async function initAnalytics() {
     try {
         const products = await fetchProducts(window.supabaseClient);
         
-        // ── KPIs reales ──────────────────────────────────────────
-        const activeProducts = products.filter(p => p.is_active);
-        const totalValuation = products.reduce((acc, p) => acc + (parseFloat(p.price || 0) * (parseInt(p.stock || 0))), 0);
+        if (!products || products.length === 0) {
+            showEmptyState();
+            return;
+        }
 
-        // SKUs Activos
+        // ── 1. SKUs Activos ──────────────────────────────────────────
+        const activeProducts = products.filter(p => p.is_active !== false); // fallback si is_active es null/undefined
+        const totalValuation = products.reduce((acc, p) => acc + ((parseFloat(p.price) || 0) * (parseInt(p.stock) || 0)), 0);
+
         const kpiSkus = document.getElementById('kpi-skus');
         const kpiSkusSub = document.getElementById('kpi-skus-sub');
         if (kpiSkus) kpiSkus.textContent = activeProducts.length;
         if (kpiSkusSub) kpiSkusSub.textContent = `${products.length} SKUs totales en catálogo`;
 
-        // Pérdida estimada por vencimiento (productos con expiry_date < hoy)
         const today = new Date();
         today.setHours(0,0,0,0);
+        
+        // Filtrar productos con fecha de vencimiento válida
         const expiringSoon = products.filter(p => p.expiry_date);
+        
         const lossEstimated = expiringSoon
             .filter(p => {
                 const d = new Date(p.expiry_date + 'T00:00:00');
-                return d <= new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000);
+                return !isNaN(d) && d <= new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // Próximos 30 días
             })
             .reduce((acc, p) => acc + ((parseFloat(p.price) || 0) * (parseInt(p.stock) || 0)), 0);
-        const kpiPerdida = document.getElementById('kpi-perdida');
-        if (kpiPerdida) kpiPerdida.textContent = `Bs. ${lossEstimated.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
-        // Merma estimada (% de valor en riesgo vs. valuación total)
+        const kpiPerdida = document.getElementById('kpi-perdida');
+        if (kpiPerdida) kpiPerdida.textContent = `Bs. ${lossEstimated.toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
+        
         const merma = totalValuation > 0 ? (lossEstimated / totalValuation) * 100 : 0;
         const kpiMerma = document.getElementById('kpi-merma');
         if (kpiMerma) kpiMerma.textContent = `${merma.toFixed(1)} %`;
 
-        // Rotación promedio estimada (proxy: stock promedio / 10)
+        // ── 4. Rotación Promedio ─────────────────────────────────────
         const avgStock = activeProducts.length > 0
             ? activeProducts.reduce((acc, p) => acc + (parseInt(p.stock) || 0), 0) / activeProducts.length
             : 0;
@@ -197,40 +209,52 @@ async function initAnalytics() {
         const kpiRot = document.getElementById('kpi-rotacion');
         const kpiRotSub = document.getElementById('kpi-rotacion-sub');
         if (kpiRot) kpiRot.textContent = `${rotacion} días`;
-        if (kpiRotSub) kpiRotSub.textContent = 'Estimado por stock promedio';
+        if (kpiRotSub) kpiRotSub.textContent = 'Estimado por nivel de stock';
 
-        // ── Renderizar listas ────────────────────────────────────
+        // ── 5. Renderizar Listas y Categorías ───────────────────────
         renderRotation(products);
         renderExpiry(products);
         renderCategories(products);
+
     } catch (err) {
         console.error("Error fetching analytics data:", err);
     }
 }
 
+function showEmptyState() {
+    const kpiSkus = document.getElementById('kpi-skus');
+    if (kpiSkus) kpiSkus.textContent = '0';
+    document.getElementById('rotation-list').innerHTML = '<p class="text-sm text-gray-400 py-4">No hay datos de productos disponibles.</p>';
+    document.getElementById('expiry-list').innerHTML = '<p class="text-sm text-gray-400 py-4">No hay alertas de vencimiento pendientes.</p>';
+}
+
 function renderRotation(products) {
     const el = document.getElementById('rotation-list');
+    if (!el) return;
+
+    // Ordenar por menor stock como proxy de mayor rotación
+    const sorted = [...products].sort((a, b) => (a.stock || 0) - (b.stock || 0)).slice(0, 7);
     
-    // Sort by lowest stock as a proxy for highest rotation (assuming max stock was 200)
-    const sorted = [...products].sort((a, b) => a.stock - b.stock).slice(0, 7);
-    
-    if(sorted.length === 0) {
-        el.innerHTML = '<p class="text-sm text-on-surface-variant">No hay datos suficientes.</p>';
+    if (sorted.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-400 py-2">Sin datos disponibles.</p>';
         return;
     }
 
     el.innerHTML = sorted.map((p, i) => {
-        const sold = Math.max(0, 200 - (p.stock || 0));
-        const pct = Math.min(100, Math.round((sold / 200) * 100));
+        const stockVal = parseInt(p.stock) || 0;
+        const maxStock = Math.max(100, stockVal + 50);
+        const sold = Math.max(0, maxStock - stockVal);
+        const pct = Math.min(100, Math.round((sold / maxStock) * 100));
         const color = '#4edea3';
+
         return `
             <div class="space-y-1.5">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="text-xs font-bold w-4 shrink-0" style="color:#bbcabf">#${i+1}</span>
-                        <span class="text-sm font-medium truncate" style="color:#e5e1e4">${p.name}</span>
+                        <span class="text-sm font-medium truncate" style="color:#e5e1e4">${p.name || 'Sin nombre'}</span>
                     </div>
-                    <span class="text-xs font-bold shrink-0 ml-3" style="color:${color}">${sold} u. vendidas (est.)</span>
+                    <span class="text-xs font-bold shrink-0 ml-3" style="color:${color}">Stock actual: ${stockVal} u.</span>
                 </div>
                 <div class="bar-container">
                     <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
@@ -241,6 +265,8 @@ function renderRotation(products) {
 
 function renderExpiry(products) {
     const el = document.getElementById('expiry-list');
+    if (!el) return;
+
     const urgencyConfig = {
         critical: { bg:'rgba(239,68,68,0.12)', text:'#ef4444', label:'Crítico',  icon:'emergency' },
         high:     { bg:'rgba(245,158,11,0.12)', text:'#f59e0b', label:'Alto',    icon:'warning'   },
@@ -250,19 +276,26 @@ function renderExpiry(products) {
     
     const today = new Date();
     today.setHours(0,0,0,0);
-    const expiring = products.filter(p => p.expiry_date).map(p => {
-        const expDate = new Date(p.expiry_date + 'T00:00:00');
-        const daysLeft = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-        const lossEst = (parseFloat(p.price) || 0) * (parseInt(p.stock) || 0);
-        let urgency = 'low';
-        if(daysLeft <= 5) urgency = 'critical';
-        else if(daysLeft <= 10) urgency = 'high';
-        else if(daysLeft <= 20) urgency = 'medium';
-        return { ...p, daysLeft, lossEst, urgency };
-    }).sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 6);
 
-    if(expiring.length === 0) {
-        el.innerHTML = '<p class="text-sm text-on-surface-variant">No hay productos próximos a vencer.</p>';
+    const expiring = products
+        .filter(p => p.expiry_date)
+        .map(p => {
+            const expDate = new Date(p.expiry_date + 'T00:00:00');
+            const daysLeft = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+            const lossEst = (parseFloat(p.price) || 0) * (parseInt(p.stock) || 0);
+            
+            let urgency = 'low';
+            if (daysLeft <= 5) urgency = 'critical';
+            else if (daysLeft <= 10) urgency = 'high';
+            else if (daysLeft <= 20) urgency = 'medium';
+
+            return { ...p, daysLeft, lossEst, urgency };
+        })
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 6);
+
+    if (expiring.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Sin mermas o productos por vencer registrados.</p>';
         return;
     }
 
@@ -289,9 +322,11 @@ function renderExpiry(products) {
 
 function renderCategories(products) {
     const el = document.getElementById('category-bars');
+    if (!el) return;
+
     const catCounts = {};
     products.forEach(p => {
-        const cat = p.category || 'Other';
+        const cat = p.category || 'General';
         catCounts[cat] = (catCounts[cat] || 0) + 1;
     });
     
@@ -304,6 +339,11 @@ function renderCategories(products) {
         pct: Math.round((catCounts[key] / total) * 100),
         color: colors[i % colors.length]
     })).sort((a,b) => b.count - a.count);
+
+    if (categories.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-400 col-span-2">No hay categorías registradas.</p>';
+        return;
+    }
 
     el.innerHTML = categories.map(c => `
         <div class="space-y-2">

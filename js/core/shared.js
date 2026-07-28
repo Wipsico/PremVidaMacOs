@@ -3,8 +3,12 @@
  * Centraliza Supabase, Auth/RLS, health check, UI común y alertas.
  */
 
+<<<<<<< HEAD
 import { applyTranslations, getCurrentLang } from './i18n.js';
 
+=======
+// ✅ Agrega la 'f' extra después de jifg
+>>>>>>> 654acb1 ( Trabajo 28/07/26)
 const OFFICIAL_SUPABASE_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
 const OFFICIAL_SUPABASE_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
 const PUBLIC_PAGES = ['login.html', 'tienda.html', 'index.html'];
@@ -17,9 +21,40 @@ const isPublicPage = PUBLIC_PAGES.includes(currentPage);
 let supabaseUrl = localStorage.getItem('supabaseUrl');
 let supabaseKey = localStorage.getItem('supabaseKey');
 
+<<<<<<< HEAD
 if (supabaseUrl !== OFFICIAL_SUPABASE_URL || !supabaseKey) {
     supabaseUrl = OFFICIAL_SUPABASE_URL;
     supabaseKey = OFFICIAL_SUPABASE_KEY;
+=======
+const FALLBACK_URL = OFFICIAL_SUPABASE_URL;
+const FALLBACK_KEY = OFFICIAL_SUPABASE_KEY;
+
+if (supabaseUrl !== FALLBACK_URL || !supabaseKey) {
+    supabaseUrl = FALLBACK_URL;
+    supabaseKey = FALLBACK_KEY;
+    localStorage.setItem('supabaseUrl', supabaseUrl);
+    localStorage.setItem('supabaseKey', supabaseKey);
+    console.info('[Prem Vida] Supabase URL normalizada a produccion.');
+}
+
+if (supabaseUrl && supabaseKey && typeof supabase !== 'undefined') {
+    try {
+        window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+    } catch (err) {
+        window.supabaseClient = null;
+        console.error('[shared.js] No se pudo inicializar Supabase.', err);
+    }
+} else {
+    window.supabaseClient = null;
+    console.warn('[shared.js] Supabase no esta disponible. Modo degradado activo.');
+}
+
+if (supabaseUrl !== FALLBACK_URL) {
+    supabaseUrl = FALLBACK_URL;
+    supabaseKey = FALLBACK_KEY;
+>>>>>>> 654acb1 ( Trabajo 28/07/26)
     localStorage.setItem('supabaseUrl', supabaseUrl);
     localStorage.setItem('supabaseKey', supabaseKey);
     console.info('[Prem Vida] Supabase URL normalizada a producción.');
@@ -137,15 +172,21 @@ function redirectToLogin(reason) {
 
 window.premVidaLogout = async function premVidaLogout() {
     try {
-        if (window.supabaseClient) await window.supabaseClient.auth.signOut();
+        if (window.supabaseClient) {
+            await window.supabaseClient.auth.signOut();
+        }
     } catch (err) {
         console.warn('[shared.js] No se pudo cerrar sesión en Supabase:', err);
     } finally {
+        // Limpiamos todo el almacenamiento local para que no quede ninguna sesión activa
         clearLegacyAuthState();
-        window.location.href = 'login.html';
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Redirigimos al login reemplazando el historial para evitar rebotes
+        window.location.replace('login.html');
     }
 };
-
 async function checkSupabaseConnection() {
     try {
         const { error } = await window.supabaseClient.from('products').select('id').limit(1);
@@ -162,7 +203,7 @@ async function checkSupabaseConnection() {
 function showSuspensionBanner() {
     if (document.getElementById('supabase-suspension-banner')) return;
 
-    const banner = document.createElement('div');
+   const banner = document.createElement('div');
     banner.id = 'supabase-suspension-banner';
     banner.className = 'w-full backdrop-blur-md border-b text-amber-200 px-6 py-3 text-center text-sm font-medium flex items-center justify-center gap-3 z-[100] sticky top-0';
     banner.style.cssText = 'background:rgba(120,80,0,0.88);border-bottom:1px solid rgba(245,158,11,0.4);';
@@ -187,16 +228,19 @@ function setupSharedUI() {
 }
 
 function setupAvatarDropdown() {
-    const avatarBtn = document.querySelector('#avatar-btn, .header img, [data-alt="Admin avatar"]');
+    // Busca la imagen del avatar o cualquier botón de perfil en la cabecera
+    const avatarBtn = document.querySelector('#avatar-btn, header img, .header img, [data-alt="Admin avatar"]');
     if (!avatarBtn) return;
 
     const avatarContainer = avatarBtn.parentElement;
     avatarContainer.classList.add('relative');
     avatarBtn.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
-
-    if (!document.getElementById('profile-dropdown')) {
+    
+    // Si ya existe el dropdown, solo aseguramos el evento
+    let dropdown = document.getElementById('profile-dropdown');
+    if (!dropdown) {
         const userName = localStorage.getItem('userName') || window.currentUserProfile?.name || 'Admin Prem Vida';
-        const dropdown = document.createElement('div');
+        dropdown = document.createElement('div');
         dropdown.id = 'profile-dropdown';
         dropdown.className = 'absolute right-0 mt-3 w-56 rounded-2xl border border-white/10 shadow-2xl p-2 hidden z-[90]';
         dropdown.style.cssText = 'background:rgba(19,19,21,0.95);backdrop-filter:blur(24px);';
@@ -219,16 +263,86 @@ function setupAvatarDropdown() {
         avatarContainer.appendChild(dropdown);
     }
 
-    const dropdown = document.getElementById('profile-dropdown');
-    avatarBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
+    // Eventos del dropdown
+    avatarBtn.onclick = (e) => {
+        e.stopPropagation();
         dropdown.classList.toggle('hidden');
-    });
+    };
+
     document.addEventListener('click', () => dropdown.classList.add('hidden'));
-    dropdown.addEventListener('click', (event) => event.stopPropagation());
-    document.getElementById('btn-logout')?.addEventListener('click', () => window.premVidaLogout());
+    dropdown.onclick = (e) => e.stopPropagation();
+
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+        logoutBtn.onclick = () => window.premVidaLogout();
+    }
 }
 
+  function setupAvatarDropdown() {
+    // 1. Buscamos cualquier elemento visual del perfil en la cabecera
+    const avatarBtn = document.querySelector('#avatar-btn, header img, .header img, [data-alt="Admin avatar"]');
+    if (!avatarBtn) return;
+
+    const avatarContainer = avatarBtn.parentElement;
+    if (avatarContainer) {
+        avatarContainer.classList.add('relative');
+    }
+    avatarBtn.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+
+    // 2. Si el menú desplegable no existe aún en el DOM, lo creamos
+    let dropdown = document.getElementById('profile-dropdown');
+    if (!dropdown) {
+        const userName = localStorage.getItem('userName') || window.currentUserProfile?.name || 'Admin Prem Vida';
+        const userRole = localStorage.getItem('userRole') || 'admin';
+        
+        dropdown = document.createElement('div');
+        dropdown.id = 'profile-dropdown';
+        dropdown.className = 'absolute right-0 mt-3 w-56 rounded-2xl border border-white/10 shadow-2xl p-2 hidden z-[90]';
+        dropdown.style.cssText = 'background:rgba(19,19,21,0.95);backdrop-filter:blur(24px);';
+        dropdown.innerHTML = `
+            <div class="px-4 py-3 border-b border-white/5 text-xs">
+                <p class="font-semibold text-sm mb-0.5" style="color:#e5e1e4">${escapeHtml(userName)}</p>
+                <p class="truncate opacity-70" style="color:#bbcabf">${escapeHtml(userRole)}</p>
+            </div>
+            <div class="p-1 space-y-1">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors hover:bg-white/5" style="color:#bbcabf">
+                    <span class="material-symbols-outlined text-lg">settings</span>
+                    <span>Configuración</span>
+                </a>
+                <button id="btn-logout" type="button" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 text-sm text-left transition-colors font-medium">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    <span>Cerrar sesión</span>
+                </button>
+            </div>
+        `;
+        (avatarContainer || document.body).appendChild(dropdown);
+    }
+
+    // 3. Asignación directa con onclick
+    avatarBtn.onclick = (event) => {
+        event.stopPropagation();
+        dropdown.classList.toggle('hidden');
+    };
+
+    dropdown.onclick = (event) => {
+        event.stopPropagation();
+    };
+
+    document.onclick = (event) => {
+        if (!dropdown.contains(event.target) && event.target !== avatarBtn) {
+            dropdown.classList.add('hidden');
+        }
+    };
+
+    // 4. Conectamos el botón de cerrar sesión
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
+            window.premVidaLogout();
+        };
+    }
+}
 function setupActiveSidebarLink() {
     const navLinks = document.querySelectorAll('aside nav a');
     navLinks.forEach((link) => {

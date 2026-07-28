@@ -72,9 +72,6 @@
 </head>
 <body class="flex min-h-screen">
 
-<!-- ══════════════════════════════════════════
-     SIDEBAR NAVIGATION
-══════════════════════════════════════════ -->
 <aside class="w-[280px] h-screen sticky left-0 top-0 bg-surface/60 backdrop-blur-[40px] border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col py-8 px-6 z-50">
     <div class="flex items-center gap-3 mb-10">
         <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
@@ -118,10 +115,6 @@
         </a>
     </div>
 </aside>
-
-<!-- ══════════════════════════════════════════
-     MAIN CONTENT
-══════════════════════════════════════════ -->
 <main class="flex-1 relative min-h-screen">
 
     <!-- TOP APP BAR -->
@@ -273,7 +266,6 @@
             </div>
         </div>
 
-        <!-- ══ SUGERENCIAS DE VENTA (PRIORIDAD ALTA) ══════════════════════ -->
         <div class="glass-card p-6 rounded-2xl space-y-4" id="panel-sugerencias">
             <div class="flex justify-between items-center border-b border-white/5 pb-4">
                 <div>
@@ -335,9 +327,6 @@
     </div>
 </main>
 
-<!-- ══════════════════════════════════════════
-     DASHBOARD SCRIPT
-══════════════════════════════════════════ -->
 <script type="module">
     import { fetchDashboardStats, renderOrdersChart } from './js/core/dashboard-logic.js';
 
@@ -345,7 +334,8 @@
     // ── Supabase init ────────────────────────────────────────────────
     const supabaseUrl = localStorage.getItem('supabaseUrl');
     const supabaseKey = localStorage.getItem('supabaseKey');
-    let sbClient = window.supabaseClient || null;
+  // En lugar de hacer supabase.createClient(...) en cada archivo:
+    const sb = window.supabaseClient;
 
     if (!sbClient && supabaseUrl && supabaseKey && typeof window.supabase !== 'undefined') {
         try {
@@ -482,7 +472,6 @@
         }).join('');
     }
 
-    // ── Render Bento stats ──────────────────────────────────────────
     function renderStats(stats) {
         animateValue('stat-revenue', `Bs. ${stats.revenue.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`);
         animateValue('stat-orders', stats.ordersCount);
@@ -572,8 +561,6 @@
         }, 4000);
     }
 </script>
-
-<!-- ══ MODAL: REGISTRAR VENTA ════════════════════════════════════ -->
 <div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-venta">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="cerrarModalVenta()"></div>
     <div style="background:rgba(19,19,21,0.92);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
@@ -638,8 +625,6 @@
         </form>
     </div>
 </div>
-
-<!-- ══ MODAL: AÑADIR GASTO ════════════════════════════════════ -->
 <div class="fixed inset-0 z-[60] flex items-center justify-center hidden" id="modal-gasto">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="cerrarModalGasto()"></div>
     <div style="background:rgba(19,19,21,0.92);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15)"
@@ -655,17 +640,33 @@
             </button>
         </div>
         <form id="form-gasto" onsubmit="event.preventDefault();" class="space-y-4">
-            <!-- Categoría -->
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Categoría</label>
-                <select id="gasto-categoria" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
-                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f">
-                    <option value="alquiler" class="bg-surface">Alquiler</option>
-                    <option value="agua" class="bg-surface">Agua</option>
-                    <option value="luz" class="bg-surface">Electricidad / Luz</option>
-                    <option value="otros" class="bg-surface">Otros</option>
-                </select>
-            </div>
+           <!-- Categoría Ampliada -->
+<div class="space-y-1.5">
+    <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Categoría del Gasto / Servicio</label>
+    <select id="gasto-categoria" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2"
+            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e5e1e4;--tw-ring-color:#ffb95f">
+        <optgroup label="Servicios Básicos" class="bg-surface text-gray-400">
+            <option value="luz" class="bg-surface text-white">Electricidad / Luz</option>
+            <option value="agua" class="bg-surface text-white">Agua Potable</option>
+            <option value="internet" class="bg-surface text-white">Internet / Teléfono</option>
+            <option value="gas" class="bg-surface text-white">Gas</option>
+        </optgroup>
+        <optgroup label="Local y Operación" class="bg-surface text-gray-400">
+            <option value="alquiler" class="bg-surface text-white">Alquiler de Local</option>
+            <option value="mantenimiento" class="bg-surface text-white">Mantenimiento y Reparaciones</option>
+            <option value="limpieza" class="bg-surface text-white">Insumos de Limpieza</option>
+        </optgroup>
+        <optgroup label="Nómina y Envíos" class="bg-surface text-gray-400">
+            <option value="sueldos" class="bg-surface text-white">Sueldos / Honorarios</option>
+            <option value="delivery" class="bg-surface text-white">Servicio de Delivery / Logística</option>
+        </optgroup>
+        <optgroup label="Otros Egresos" class="bg-surface text-gray-400">
+            <option value="marketing" class="bg-surface text-white">Publicidad y Marketing</option>
+            <option value="impuestos" class="bg-surface text-white">Impuestos / Comisiones</option>
+            <option value="otros" class="bg-surface text-white">Otros Gastos</option>
+        </optgroup>
+    </select>
+</div>
             <!-- Monto -->
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold uppercase tracking-wider" style="color:#bbcabf">Monto (Bs.)</label>
@@ -698,8 +699,6 @@
         </form>
     </div>
 </div>
-
-<!-- ══ LÓGICA: MODALES DASHBOARD ══════════════════════════════ -->
 <script>
 // ── Helpers de modal ────────────────────────────────────────────
 window.abrirModalVenta = function() { 
@@ -815,14 +814,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── Helper para obtener Supabase de forma segura ──
+    const getSupabaseClient = () => window.supabaseClient || (typeof sbClient !== 'undefined' ? sbClient : null);
+
     // ── Form: Añadir Gasto ───────────────────────────────────────
    const formGasto = document.getElementById('form-gasto');
     if (formGasto) {
         formGasto.addEventListener('submit', async () => {
-            const sb = getSupabase();
+            const sb = window.supabaseClient || sbClient;
 
             if (!sb) {
-                dashToast('error', 'Supabase no disponible. Verifica la configuración.', 'error');
+                dashToast('error', 'Cliente de Supabase no disponible. Verifica la sesión.', 'error');
                 return;
             }
 
@@ -831,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fecha     = document.getElementById('gasto-fecha').value;
 
             if (monto <= 0 || !fecha) {
-                dashToast('warning', 'Completa todos los campos del gasto.', 'warning');
+                dashToast('warning', 'Ingresa un monto válido y selecciona una fecha.', 'warning');
                 return;
             }
 
@@ -851,7 +853,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 window.cerrarModalGasto();
                 dashToast('check_circle', `Gasto de Bs. ${monto.toFixed(2)} (${categoria}) registrado.`, 'success');
+                
                 if (typeof loadDashboard === 'function') loadDashboard();
+
             } catch (err) {
                 console.error('Error registrando gasto:', err);
                 dashToast('error', `Error: ${err.message}`, 'error');

@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html class="dark" lang="es">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Prem Vida - Iniciar Sesión</title>
     <link rel="icon" type="image/png" href="assets/logo.png">
     <!-- Tailwind CSS & Plugins -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -40,18 +44,24 @@
         }
     </style>
 </head>
+
 <body class="flex items-center justify-center min-h-screen relative">
     <!-- Decorative background elements -->
-    <div class="absolute w-[500px] h-[500px] bg-primary-container/10 rounded-full blur-[120px] -top-40 -left-40 animate-pulse"></div>
-    <div class="absolute w-[400px] h-[400px] bg-secondary-container/5 rounded-full blur-[100px] -bottom-20 -right-20"></div>
+    <div
+        class="absolute w-[500px] h-[500px] bg-primary-container/10 rounded-full blur-[120px] -top-40 -left-40 animate-pulse">
+    </div>
+    <div class="absolute w-[400px] h-[400px] bg-secondary-container/5 rounded-full blur-[100px] -bottom-20 -right-20">
+    </div>
 
     <!-- Login Container -->
     <div class="w-full max-w-md p-6 relative z-10">
         <div class="glass-card p-10 rounded-3xl space-y-8">
             <!-- Brand Logo & Header -->
             <div class="text-center space-y-3">
-                <div class="mx-auto w-14 h-14 bg-primary-container rounded-2xl flex items-center justify-center shadow-lg shadow-primary-container/20">
-                    <span class="material-symbols-outlined text-on-primary-container text-3xl font-semibold" style="font-variation-settings: 'FILL' 1;">eco</span>
+                <div
+                    class="mx-auto w-14 h-14 bg-primary-container rounded-2xl flex items-center justify-center shadow-lg shadow-primary-container/20">
+                    <span class="material-symbols-outlined text-on-primary-container text-3xl font-semibold"
+                        style="font-variation-settings: 'FILL' 1;">eco</span>
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold tracking-tight text-on-surface">Prem Vida Admin</h2>
@@ -62,32 +72,43 @@
             <!-- Login Form -->
             <form id="login-form" class="space-y-5">
                 <div class="space-y-2">
-                    <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Correo Electrónico</label>
+                    <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Correo
+                        Electrónico</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">mail</span>
-                        <input id="login-email" required class="w-full input-recessed rounded-xl pl-12 pr-4 py-3 focus:outline-none text-sm text-on-surface" placeholder="ejemplo@premvida.com" type="email"/>
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">mail</span>
+                        <input id="login-email" required
+                            class="w-full input-recessed rounded-xl pl-12 pr-4 py-3 focus:outline-none text-sm text-on-surface"
+                            placeholder="ejemplo@premvida.com" type="email" />
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Contraseña</label>
+                    <label
+                        class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Contraseña</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">lock</span>
-                        <input id="login-password" required class="w-full input-recessed rounded-xl pl-12 pr-4 py-3 focus:outline-none text-sm text-on-surface" placeholder="••••••••" type="password"/>
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">lock</span>
+                        <input id="login-password" required
+                            class="w-full input-recessed rounded-xl pl-12 pr-4 py-3 focus:outline-none text-sm text-on-surface"
+                            placeholder="••••••••" type="password" />
                     </div>
                 </div>
 
                 <!-- Admin access note -->
-                <div class="bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-on-surface-variant flex items-start gap-2.5">
+                <div
+                    class="bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-on-surface-variant flex items-start gap-2.5">
                     <span class="material-symbols-outlined text-primary text-base mt-0.5">admin_panel_settings</span>
                     <div>
                         <p class="font-medium text-on-surface">Acceso administrativo protegido</p>
-                        <p class="opacity-85 mt-0.5">Solo usuarios creados o aprobados por un administrador pueden entrar a la suite.</p>
+                        <p class="opacity-85 mt-0.5">Solo usuarios creados o aprobados por un administrador pueden
+                            entrar a la suite.</p>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="btn-submit" class="w-full py-3.5 rounded-xl bg-primary text-on-primary font-bold shadow-lg shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                <button type="submit" id="btn-submit"
+                    class="w-full py-3.5 rounded-xl bg-primary text-on-primary font-bold shadow-lg shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-lg">login</span>
                     <span>Ingresar al Sistema</span>
                 </button>
@@ -95,14 +116,17 @@
 
             <div class="relative flex py-2 items-center">
                 <div class="flex-grow border-t border-white/10"></div>
-                <span class="flex-shrink mx-4 text-xs text-on-surface-variant uppercase font-medium tracking-wider">O continuar con</span>
+                <span class="flex-shrink mx-4 text-xs text-on-surface-variant uppercase font-medium tracking-wider">O
+                    continuar con</span>
                 <div class="flex-grow border-t border-white/10"></div>
             </div>
 
             <!-- Social Authentication (Google OAuth Wired) -->
-            <button id="btn-google" class="w-full py-3.5 rounded-xl border border-white/10 hover:bg-white/5 font-semibold text-sm transition-all flex items-center justify-center gap-3">
+            <button id="btn-google"
+                class="w-full py-3.5 rounded-xl border border-white/10 hover:bg-white/5 font-semibold text-sm transition-all flex items-center justify-center gap-3">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" width="24" height="24">
-                    <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.423-2.883-6.423-6.423 0-3.54 2.883-6.423 6.423-6.423 1.547 0 2.955.553 4.062 1.464l3.116-3.116C19.312 2.222 15.986 1 12.24 1 6.037 1 1 6.037 1 12.24s5.037 11.24 11.24 11.24c5.898 0 10.743-4.254 11.216-9.81H12.24z"/>
+                    <path fill="#EA4335"
+                        d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.54 0-6.423-2.883-6.423-6.423 0-3.54 2.883-6.423 6.423-6.423 1.547 0 2.955.553 4.062 1.464l3.116-3.116C19.312 2.222 15.986 1 12.24 1 6.037 1 1 6.037 1 12.24s5.037 11.24 11.24 11.24c5.898 0 10.743-4.254 11.216-9.81H12.24z" />
                 </svg>
                 <span>Acceder con Google</span>
             </button>
@@ -110,33 +134,46 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toast"
+        class="fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
         <span id="toast-icon" class="material-symbols-outlined text-primary">check_circle</span>
         <p id="toast-message" class="text-sm font-medium text-on-surface"></p>
     </div>
 
-    <div id="mfa-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+    <div id="mfa-modal"
+        class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="glass-card w-full max-w-sm rounded-3xl p-7 space-y-5">
             <div class="space-y-2">
                 <div class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">shield_lock</span>
+                    <span class="material-symbols-outlined text-primary"
+                        style="font-variation-settings:'FILL' 1">shield_lock</span>
                 </div>
                 <h3 class="text-lg font-bold text-on-surface">Verificación 2FA</h3>
-                <p class="text-xs text-on-surface-variant leading-relaxed">Ingresa el código temporal de tu app autenticadora para completar el acceso administrativo.</p>
+                <p class="text-xs text-on-surface-variant leading-relaxed">Ingresa el código temporal de tu app
+                    autenticadora para completar el acceso administrativo.</p>
             </div>
             <input id="mfa-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
-                   class="w-full input-recessed rounded-xl px-4 py-3 focus:outline-none text-center text-xl tracking-[0.35em] text-on-surface"
-                   placeholder="000000" type="text"/>
+                class="w-full input-recessed rounded-xl px-4 py-3 focus:outline-none text-center text-xl tracking-[0.35em] text-on-surface"
+                placeholder="000000" type="text" />
             <div class="flex gap-3">
-                <button id="mfa-cancel" class="flex-1 py-3 rounded-xl border border-white/10 font-semibold text-sm hover:bg-white/5 transition-colors">Cancelar</button>
-                <button id="mfa-verify" class="flex-1 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm">Verificar</button>
+                <button id="mfa-cancel"
+                    class="flex-1 py-3 rounded-xl border border-white/10 font-semibold text-sm hover:bg-white/5 transition-colors">Cancelar</button>
+                <button id="mfa-verify"
+                    class="flex-1 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm">Verificar</button>
             </div>
         </div>
     </div>
 
     <script>
-        const FALLBACK_URL = 'https://jifgbcjkqzffvtxxktg.supabase.co';
+        const FALLBACK_URL = 'https://jifgfbcjkqzffvtxxktg.supabase.co';
         const FALLBACK_KEY = 'sb_publishable_qupB57fCBXiY5fazSqAqrA_o1FVIjKp';
+
+        // 1. SI VENIMOS DE UN LOGOUT O RAZÓN DE REPETICIÓN, LIMPIAMOS TODO INMEDIATAMENTE
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('reason') || urlParams.get('logout') === 'true') {
+            localStorage.clear();
+            sessionStorage.clear();
+        }
 
         if (!localStorage.getItem('supabaseUrl')) localStorage.setItem('supabaseUrl', FALLBACK_URL);
         if (!localStorage.getItem('supabaseKey')) localStorage.setItem('supabaseKey', FALLBACK_KEY);
@@ -151,7 +188,11 @@
             });
         }
 
+        // 2. SOLO REDIRIGIR SI VIENE DIRECTO Y HAY SESIÓN REAL
         document.addEventListener('DOMContentLoaded', async () => {
+            // Si la URL indica logout o limpia explícita, no autologueamos
+            if (urlParams.has('reason')) return;
+
             if (!supabaseClient) return;
             const { data } = await supabaseClient.auth.getSession();
             if (!data?.session) return;
@@ -203,7 +244,6 @@
                     btn.innerHTML = originalText;
                 }
             } else {
-                // If Supabase not set up, show credentials error for anything else
                 showToast('error', 'Credenciales incorrectas o Supabase sin configurar.', 'error');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -247,7 +287,25 @@
                 return true;
             }
         }
+        // Función helper segura para leer localStorage sin que la app colapse
+        function safeGetStorage(key) {
+            // Limpieza segura que no rompe la app si el navegador bloquea el almacenamiento
+            try {
+                localStorage.clear();
+            } catch (e) {
+                console.warn('localStorage bloqueado por el navegador:', e);
+            }
 
+            try {
+                sessionStorage.clear();
+            } catch (e) {
+                console.warn('sessionStorage bloqueado por el navegador:', e);
+            }
+        }
+
+
+        // Reemplaza tus leituras directas por el helper seguro:
+        const session = safeGetStorage('sb-access-token');
         function openMfaModal() {
             const modal = document.getElementById('mfa-modal');
             const input = document.getElementById('mfa-code');
@@ -294,7 +352,7 @@
             }
         });
 
-        // Google Auth Integration (Wired)
+        // Google Auth Integration
         document.getElementById('btn-google').addEventListener('click', async () => {
             if (supabaseClient) {
                 try {
@@ -323,7 +381,7 @@
             toastMsg.textContent = message;
 
             toast.className = 'fixed bottom-6 left-6 z-[100] px-5 py-4 rounded-xl bg-surface/90 border border-white/15 shadow-2xl backdrop-blur-md flex items-center gap-3 transform transition-all duration-300 pointer-events-auto opacity-100 translate-y-0';
-            
+
             if (type === 'error') {
                 toastIcon.className = 'material-symbols-outlined text-red-500';
                 toast.style.borderColor = 'rgba(239, 68, 68, 0.4)';
@@ -341,4 +399,5 @@
         }
     </script>
 </body>
+
 </html>
